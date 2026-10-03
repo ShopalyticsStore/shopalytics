@@ -1,0 +1,81 @@
+{
+  "schema_version": "shopalytics-fixture-manifest-v1",
+  "fixture_id": "dudulemon-saved-conversion-views",
+  "root_seed": "shopalytics/dudulemon/2026-09-14/v1",
+  "fixture_clock": "2026-09-14T09:00:00Z",
+  "history_days": 120,
+  "environment_template": {
+    "id": "shopalytics-dudulemon-preview",
+    "revision": 2,
+    "dockerfile": "deploy/vercel/Dockerfile",
+    "supervisor": "deploy/vercel/supervisor.sh",
+    "application_port": 3300,
+    "postgres_major_version": 17,
+    "node_major_version": 24
+  },
+  "identity": {
+    "account": {
+      "id": "75f1a0d0-7c31-5d09-98ad-051171933aca",
+      "name": "Dudulemon"
+    },
+    "growth_lead": {
+      "id": "38f37141-be30-5d2b-a17d-9973d9409768",
+      "name": "Maya Okonkwo",
+      "email": "maya@dudulemon.example.com",
+      "role": "Growth lead"
+    }
+  },
+  "tables": [
+    {
+      "name": "accounts",
+      "row_count": 1,
+      "content_hash": "sha256:2a0518fac6abfe42e8d09c418bf2a0b92a32cbc46663856db173c9aff812000b"
+    },
+    {
+      "name": "users",
+      "row_count": 1,
+      "content_hash": "sha256:a7c6a0d0ec0fa40e9e77f76fd9490afaf29552c204091b66ea8f0c50211a8e77"
+    },
+    {
+      "name": "products",
+      "row_count": 12,
+      "content_hash": "sha256:665b943f1c06c4433f58e2282e394b03455cc018daf6d4cef91f9708bc46bdf6"
+    },
+    {
+      "name": "traffic_sources",
+      "row_count": 7,
+      "content_hash": "sha256:9dbfcf2e28ce024cc0b9624a641ee396665b4ae7514f81297273c583abcd2fa8"
+    },
+    {
+      "name": "demographic_segments",
+      "row_count": 7,
+      "content_hash": "sha256:a34fb36c9cff3250e0f1093444b6637ce0a713d6450a3e31c06f17c85819acab"
+    },
+    {
+      "name": "review_topics",
+      "row_count": 6,
+      "content_hash": "sha256:2b8a469937f4c62f3c1970295dafd78886bdea709bddbb32a0623fb6197eb49f"
+    },
+    {
+      "name": "conversion_states",
+      "row_count": 4,
+      "content_hash": "sha256:b42fb7c601adc503599ca011b4d488d8f659bea6b49efae10afdfde4d77a67dc"
+    },
+    {
+      "name": "conversion_daily_metrics",
+      "row_count": 87339,
+      "content_hash": "sha256:27b9072ab5f045ad0e6ae769b72ba89595b1690fae308a379675f96d7d41e659"
+    },
+    {
+      "name": "customer_reviews",
+      "row_count": 606,
+      "content_hash": "sha256:e9a606991580b9c895324bc07914120d513dc4edea78d27ff40ffc366470acfc"
+    },
+    {
+      "name": "customer_review_topics",
+      "row_count": 606,
+      "content_hash": "sha256:d95ee2907df574ac279fbdcc0312de9ba5184ae378ff90edfc20fedf234e4f54"
+    }
+  ],
+  "content_hash": "sha256:eee893377d423c2cade8778ff03e0060c75e59308f6350851bec21c08a87d51f"
+}

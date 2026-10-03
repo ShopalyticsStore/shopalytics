@@ -1,0 +1,446 @@
+{
+  "surfaces": [
+    {
+      "surface_id": "conversion_dashboard",
+      "sensitive": false
+    },
+    {
+      "surface_id": "account_settings",
+      "sensitive": true
+    }
+  ],
+  "entities": [
+    {
+      "entity_definition_id": "conversion_view",
+      "instance_ref_rule_id": "safe.view_ref"
+    },
+    {
+      "entity_definition_id": "dudulemon_product",
+      "instance_ref_rule_id": "safe.product_ref"
+    }
+  ],
+  "targets": [
+    {
+      "definition_id": "conversion_filter_channel",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_filter_segment",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_filter_review_topic",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_filter_sentiment",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_filter_conversion_state",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_filter_product",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_filter_date_range",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_filter_reset",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_trend_chart",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "geometry",
+        "child_roles"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_product_table",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "geometry",
+        "child_roles"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "saved_view_save_control",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "saved_view_name_field",
+      "effects": [
+        "observe"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "saved_view_reopen_control",
+      "effects": [
+        "observe",
+        "visual_guidance"
+      ],
+      "detail_fields": [
+        "role",
+        "label",
+        "semantic_state",
+        "geometry"
+      ],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    }
+  ],
+  "visual_targets": [
+    {
+      "definition_id": "conversion_filter_bar",
+      "effects": [
+        "visual_guidance"
+      ],
+      "detail_fields": [],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_kpi_cards",
+      "effects": [
+        "visual_guidance"
+      ],
+      "detail_fields": [],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_review_panel",
+      "effects": [
+        "visual_guidance"
+      ],
+      "detail_fields": [],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    }
+  ],
+  "milestones": [
+    {
+      "milestone_id": "conversion_filters_applied",
+      "attribute_rule_ids": [
+        "safe.date_range_preset",
+        "safe.dimension_name",
+        "safe.selection_count"
+      ]
+    },
+    {
+      "milestone_id": "conversion_series_displayed",
+      "attribute_rule_ids": [
+        "safe.series_id",
+        "safe.series_label",
+        "safe.selection_count"
+      ]
+    },
+    {
+      "milestone_id": "conversion_render_completed",
+      "attribute_rule_ids": [
+        "safe.surface_id",
+        "safe.render_status",
+        "safe.selection_count"
+      ]
+    },
+    {
+      "milestone_id": "saved_view_created",
+      "attribute_rule_ids": [
+        "safe.view_name"
+      ]
+    },
+    {
+      "milestone_id": "saved_view_reopened",
+      "attribute_rule_ids": [
+        "safe.view_name"
+      ]
+    }
+  ],
+  "severities": [
+    "info",
+    "warning",
+    "critical"
+  ],
+  "priorities": [
+    "low",
+    "normal",
+    "high"
+  ],
+  "route_templates": [
+    "/",
+    "/login",
+    "/app",
+    "/app/conversion",
+    "/app/products",
+    "/app/reviews",
+    "/app/segments",
+    "/app/settings"
+  ],
+  "approved_trace_origins": [],
+  "redaction": {
+    "redaction_version": "shopalytics-r-1",
+    "policy_version": "shopalytics-p-1",
+    "safe_value_rules": [
+      {
+        "rule_id": "safe.control_label",
+        "allowed_kinds": [
+          "accessible_label"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 60
+      },
+      {
+        "rule_id": "safe.date_range_preset",
+        "allowed_kinds": [
+          "annotation_attribute"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 16,
+        "allowed_values": [
+          "last_7_days",
+          "last_30_days",
+          "last_90_days",
+          "custom"
+        ]
+      },
+      {
+        "rule_id": "safe.dimension_name",
+        "allowed_kinds": [
+          "annotation_attribute",
+          "accessible_label"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 64,
+        "allowed_pattern": "[A-Za-z0-9 ,+&'\u2019/-]{1,64}"
+      },
+      {
+        "rule_id": "safe.selection_count",
+        "allowed_kinds": [
+          "annotation_attribute"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 4,
+        "allowed_pattern": "[0-9]{1,4}"
+      },
+      {
+        "rule_id": "safe.series_id",
+        "allowed_kinds": [
+          "annotation_attribute"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 64,
+        "allowed_pattern": "[a-z_+]{1,64}"
+      },
+      {
+        "rule_id": "safe.series_label",
+        "allowed_kinds": [
+          "annotation_attribute",
+          "accessible_label"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 120,
+        "allowed_pattern": "[A-Za-z0-9 ,+&'\u2019/-]{1,120}"
+      },
+      {
+        "rule_id": "safe.surface_id",
+        "allowed_kinds": [
+          "annotation_attribute"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 32,
+        "allowed_values": [
+          "conversion_trend",
+          "conversion_kpis",
+          "product_breakdown",
+          "review_list"
+        ]
+      },
+      {
+        "rule_id": "safe.render_status",
+        "allowed_kinds": [
+          "annotation_attribute"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 8,
+        "allowed_values": [
+          "rendered",
+          "empty"
+        ]
+      },
+      {
+        "rule_id": "safe.view_name",
+        "allowed_kinds": [
+          "form_value",
+          "annotation_attribute"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 60,
+        "allowed_pattern": "[\\w ,'-]{1,60}"
+      },
+      {
+        "rule_id": "safe.view_ref",
+        "allowed_kinds": [
+          "annotation_attribute"
+        ],
+        "output_class": "pseudonymized",
+        "max_length": 64
+      },
+      {
+        "rule_id": "safe.product_ref",
+        "allowed_kinds": [
+          "annotation_attribute"
+        ],
+        "output_class": "pseudonymized",
+        "max_length": 64
+      }
+    ],
+    "sensitive_surfaces": [
+      "account_settings"
+    ],
+    "sensitive_fields": [
+      "reviewer_email",
+      "reviewer_name",
+      "billing_card"
+    ]
+  }
+}
