@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import * as React from "react";
 
-const BAR_COLOR = "#22c55e";
+const BAR_COLOR = "var(--chart-1)";
 
 type ShareBarListItemContextValue = {
   value: number;
@@ -95,8 +95,8 @@ function ShareBarListFill({ className, style, ...props }: React.ComponentProps<"
   const { value } = useShareBarListItemContext("ShareBarListFill");
   const borderMixPercent = Math.min(100, Math.max(36, value * 1.75));
   const borderRightColor = `color-mix(in srgb, ${BAR_COLOR} ${borderMixPercent}%, transparent)`;
-  const fillStartColor = `color-mix(in srgb, ${BAR_COLOR} 4%, transparent)`;
-  const fillEndColor = `color-mix(in srgb, ${BAR_COLOR} 36%, transparent)`;
+  const fillStartColor = `color-mix(in srgb, ${BAR_COLOR} 10%, transparent)`;
+  const fillEndColor = `color-mix(in srgb, ${BAR_COLOR} 30%, transparent)`;
   const backgroundImage = `linear-gradient(to right, ${fillStartColor}, ${fillEndColor})`;
 
   return (

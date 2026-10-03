@@ -74,24 +74,26 @@ export function RefundReturnRateChart({
 
   return (
     <Card className={cn("gap-0 overflow-hidden py-0", className)}>
-      <CardHeader className="flex flex-col px-6 py-6 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
+      <CardHeader className="flex flex-col pt-4 pb-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-0.5">
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
-        <div className="space-y-1">
-          <CardTitle className="text-right">{headline.toFixed(1)}%</CardTitle>
+        <div className="space-y-0.5">
+          <CardTitle className="text-right text-xl leading-7 tabular-nums">
+            {headline.toFixed(1)}%
+          </CardTitle>
           <CardDescription>{valueLabel}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="mt-auto px-6 pb-6">
+      <CardContent className="mt-auto pb-4">
         <ChartContainer className="aspect-auto h-56 w-full" config={chartConfig}>
           <LineChart
             accessibilityLayer
             data={[...series]}
             margin={{ left: 12, right: 12, top: 12, bottom: 0 }}
           >
-            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+            <CartesianGrid vertical={false} />
             <XAxis
               axisLine={false}
               dataKey="day"
@@ -105,13 +107,13 @@ export function RefundReturnRateChart({
               dataKey="returnRate"
               dot={false}
               stroke="var(--color-returnRate)"
-              strokeWidth={2.5}
+              strokeWidth={2}
               type="monotone"
             />
           </LineChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="border-t bg-muted/20 px-6 py-5">
+      <CardFooter className="border-t bg-muted py-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 text-muted-foreground text-xs">
           <Delta value={trendPct}>
             <DeltaIcon />

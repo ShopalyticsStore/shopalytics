@@ -63,11 +63,11 @@ export function QuickActions({
 } = {}) {
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <CardHeader className="border-b py-5">
+      <CardHeader className="border-b py-3">
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="bg-muted/10 p-2">
+      <CardContent className="p-2 [&:last-child]:pb-2">
         <ItemGroup className="gap-0">
           {actions.map((a) => {
             const Icon = a.icon;

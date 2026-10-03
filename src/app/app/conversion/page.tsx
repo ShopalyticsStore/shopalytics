@@ -56,7 +56,7 @@ export default function ConversionPage() {
       <div
         role="alert"
         data-testid="conversion-load-error"
-        className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-400"
+        className="rounded-xl border border-critical-fill/25 bg-critical-surface p-4 text-sm text-critical"
       >
         {failure.message}
       </div>

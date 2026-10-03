@@ -28,14 +28,14 @@ export function DashboardStats({ stats = DEMO_STATS }: { stats?: readonly Stat[]
 function StatCard({ stat }: { stat: Stat }) {
   const { label, value, delta, hint } = stat;
   return (
-    <Card className="gap-0 overflow-hidden py-0 shadow-none">
-      <div className="flex min-h-24 flex-col justify-between gap-4 px-5 py-4">
-        <div className="text-sm font-normal leading-none text-muted-foreground">{label}</div>
-        <p className="text-balance text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums">
+    <Card className="gap-0 overflow-hidden py-0">
+      <div className="flex flex-col gap-1 p-4">
+        <div className="text-sm font-semibold">{label}</div>
+        <p className="text-balance text-xl font-semibold leading-7 tracking-tight tabular-nums">
           {value}
         </p>
       </div>
-      <div className="flex min-h-12 items-center gap-2 border-t bg-muted/35 px-5 py-3 text-sm">
+      <div className="flex items-center gap-2 border-t bg-muted px-4 py-2 text-xs">
         <Delta value={delta}>
           <DeltaIcon />
           <DeltaValue className="leading-none" />

@@ -25,14 +25,14 @@ function Delta({
     delta.direction === "flat" ? "neutral" : delta.direction === goodWhen ? "good" : "bad";
   const color =
     quality === "good"
-      ? "text-emerald-600"
+      ? "text-success"
       : quality === "bad"
-        ? "text-rose-600"
+        ? "text-critical"
         : "text-muted-foreground";
   const Icon =
     delta.direction === "up" ? ArrowUpRight : delta.direction === "down" ? ArrowDownRight : Minus;
   return (
-    <div className={cn("mt-2 flex items-center gap-1 text-xs", color)}>
+    <div className={cn("mt-1 flex items-center gap-1 text-xs", color)}>
       <Icon className="size-3.5" />
       <span>{delta.label}</span>
     </div>
@@ -55,11 +55,15 @@ function Kpi({
   testId: string;
 }) {
   return (
-    <Card className="p-5" data-testid={testId} data-utrace-visual-target="conversion_kpi_cards">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
+    <Card
+      className="gap-0 p-4"
+      data-testid={testId}
+      data-utrace-visual-target="conversion_kpi_cards"
+    >
+      <div className="text-sm font-semibold">{label}</div>
+      <div className="mt-1 text-xl font-semibold leading-7 tabular-nums tracking-tight">
+        {value}
       </div>
-      <div className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">{value}</div>
       <Delta filtered={filtered} baseline={baseline} goodWhen={goodWhen} />
     </Card>
   );
@@ -70,7 +74,7 @@ export function KpiCards({ data, seriesLabel }: Props) {
   const filtered = data.filtered;
   const baseline = data.baseline;
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <Kpi
         testId="kpi-sessions"
         label="Sessions"

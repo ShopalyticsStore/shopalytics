@@ -70,7 +70,7 @@ export default function ReviewsPage() {
     return (
       <div
         role="alert"
-        className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-400"
+        className="rounded-xl border border-critical-fill/25 bg-critical-surface p-4 text-sm text-critical"
       >
         {failure.message}
       </div>
@@ -147,7 +147,7 @@ function LoadedReviews({
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="Voice of customer"
         title="Reviews"
@@ -167,7 +167,7 @@ function LoadedReviews({
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <SummaryStat label="Reviews" value={counts.total} tone="plain" />
         <SummaryStat label="Positive" value={counts.positive} tone="good" />
         <SummaryStat label="Neutral" value={counts.neutral} tone="plain" />
@@ -188,13 +188,11 @@ function SummaryStat({
   tone: "good" | "bad" | "plain";
 }) {
   const toneClass =
-    tone === "good" ? "text-emerald-500" : tone === "bad" ? "text-rose-500" : "text-foreground";
+    tone === "good" ? "text-success" : tone === "bad" ? "text-critical" : "text-foreground";
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className={`mt-1 font-display text-2xl font-semibold tabular-nums ${toneClass}`}>
+    <div className="rounded-xl border bg-card p-4 shadow-card">
+      <div className="text-sm font-semibold">{label}</div>
+      <div className={`mt-1 text-xl font-semibold leading-7 tabular-nums ${toneClass}`}>
         {value}
       </div>
     </div>

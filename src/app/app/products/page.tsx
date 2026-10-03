@@ -84,7 +84,7 @@ export default function ProductsPage() {
   const selectedSent = selected ? sentimentMap.get(selected) : undefined;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="Catalog"
         title="Products"
@@ -98,7 +98,7 @@ export default function ProductsPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search products"
-            className="h-9 pl-8"
+            className="pl-8"
           />
         </div>
         <span className="text-xs text-muted-foreground">{rows.length} products</span>
@@ -108,19 +108,19 @@ export default function ProductsPage() {
         <CardContent className="overflow-x-auto p-0 [&:last-child]:pb-0">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/20 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                <th className="px-5 py-2.5 font-medium">Product</th>
-                <th className="px-5 py-2.5 text-right font-medium">Sessions</th>
-                <th className="px-5 py-2.5 text-right font-medium">Purchases</th>
-                <th className="px-5 py-2.5 text-right font-medium">Conv. rate</th>
-                <th className="px-5 py-2.5 text-right font-medium">Revenue</th>
-                <th className="px-5 py-2.5 font-medium">Sentiment</th>
+              <tr className="border-b bg-muted text-left text-xs font-medium text-muted-foreground">
+                <th className="px-4 py-2 font-medium">Product</th>
+                <th className="px-4 py-2 text-right font-medium">Sessions</th>
+                <th className="px-4 py-2 text-right font-medium">Purchases</th>
+                <th className="px-4 py-2 text-right font-medium">Conv. rate</th>
+                <th className="px-4 py-2 text-right font-medium">Revenue</th>
+                <th className="px-4 py-2 font-medium">Sentiment</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
                     No products match
                   </td>
                 </tr>
@@ -131,18 +131,18 @@ export default function ProductsPage() {
                     <tr
                       key={r.productId}
                       onClick={() => setSelected(r.productId)}
-                      className="cursor-pointer border-b transition-colors last:border-b-0 hover:bg-muted/25"
+                      className="cursor-pointer border-b transition-colors last:border-b-0 hover:bg-muted"
                     >
-                      <td className="px-5 py-3 font-medium">{r.productName}</td>
-                      <td className="px-5 py-3 text-right tabular-nums">{fmtInt(r.sessions)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums">{fmtInt(r.purchases)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums">
+                      <td className="px-4 py-2.5 font-medium">{r.productName}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{fmtInt(r.sessions)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{fmtInt(r.purchases)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">
                         {fmtPct(r.conversionRate)}
                       </td>
-                      <td className="px-5 py-3 text-right tabular-nums">
+                      <td className="px-4 py-2.5 text-right tabular-nums">
                         {fmtUsd(r.revenueCents)}
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-2.5">
                         <SentimentBar s={s} />
                       </td>
                     </tr>
@@ -172,10 +172,10 @@ function SentimentBar({ s }: { s?: ProductSentiment }) {
   const neg = (s.negative / s.total) * 100;
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-1.5 w-32 overflow-hidden rounded-full bg-muted">
-        <div className="bg-emerald-500" style={{ width: `${pos}%` }} />
+      <div className="flex h-1.5 w-32 overflow-hidden rounded-full bg-secondary">
+        <div className="bg-success-fill" style={{ width: `${pos}%` }} />
         <div className="bg-muted-foreground/40" style={{ width: `${neu}%` }} />
-        <div className="bg-rose-500" style={{ width: `${neg}%` }} />
+        <div className="bg-critical-fill" style={{ width: `${neg}%` }} />
       </div>
       <span className="text-xs tabular-nums text-muted-foreground">
         {s.avgRating.toFixed(1)}★ · {s.total}
@@ -199,28 +199,24 @@ function ProductDrawer({
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-background/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40"
       />
-      <div className="relative z-10 flex w-full max-w-lg flex-col rounded-xl border bg-card shadow-2xl">
-        <div className="flex items-start justify-between border-b px-6 py-5">
+      <div className="relative z-10 flex w-full max-w-lg flex-col rounded-xl bg-card shadow-overlay">
+        <div className="flex items-start justify-between border-b px-4 py-3">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
-              Product
-            </div>
-            <h2 className="mt-1 font-display text-2xl font-medium tracking-tight">
-              {row.productName}
-            </h2>
+            <div className="text-xs font-medium text-muted-foreground">Product</div>
+            <h2 className="text-base font-semibold tracking-tight">{row.productName}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="cursor-pointer rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <div className="max-h-[70vh] space-y-5 overflow-y-auto px-6 py-5">
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
           <div className="grid grid-cols-2 gap-3">
             <Stat label="Sessions" value={fmtInt(row.sessions)} />
             <Stat label="Purchases" value={fmtInt(row.purchases)} />
@@ -229,9 +225,7 @@ function ProductDrawer({
           </div>
 
           <div>
-            <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Review sentiment
-            </div>
+            <div className="mb-2 text-sm font-semibold">Review sentiment</div>
             {sentiment && sentiment.total > 0 ? (
               <div className="space-y-2">
                 <SentimentBar s={sentiment} />
@@ -253,11 +247,9 @@ function ProductDrawer({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border/60 p-3">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-1 font-display text-xl font-semibold tabular-nums">{value}</div>
+    <div className="rounded-lg border p-3">
+      <div className="text-xs font-medium text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-base font-semibold tabular-nums">{value}</div>
     </div>
   );
 }
@@ -273,14 +265,14 @@ function Pill({
 }) {
   const cls =
     tone === "good"
-      ? "bg-emerald-500/10 text-emerald-500"
+      ? "bg-success-surface text-success"
       : tone === "bad"
-        ? "bg-rose-500/10 text-rose-500"
+        ? "bg-critical-surface text-critical"
         : "bg-muted text-muted-foreground";
   return (
-    <div className={cn("rounded-md px-2.5 py-2", cls)}>
-      <div className="text-[10px] font-medium uppercase tracking-wider opacity-80">{label}</div>
-      <div className="font-display text-base font-semibold tabular-nums">{value}</div>
+    <div className={cn("rounded-lg px-2.5 py-2", cls)}>
+      <div className="text-xs font-medium">{label}</div>
+      <div className="text-base font-semibold tabular-nums">{value}</div>
     </div>
   );
 }

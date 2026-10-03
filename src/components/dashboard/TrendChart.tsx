@@ -33,46 +33,53 @@ export function TrendChart({ data, seriesLabel, seriesId }: Props) {
 
   return (
     <Card
-      className="p-5"
+      className="gap-0 p-4"
       data-testid="conversion-trend"
       data-series-id={seriesId}
       data-utrace-target="conversion_trend_chart"
       data-utrace-entity={`conversion_view:${seriesId}`}
     >
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-sm font-semibold">{seriesLabel} over time</h3>
         <span className="text-xs text-muted-foreground">Daily, % of sessions</span>
       </div>
-      <div className="mt-4 h-64 w-full">
+      <div className="mt-3 h-64 w-full">
         {chartData.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             No data for the current filters
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+            <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: -4 }}>
+              <CartesianGrid stroke="var(--color-border)" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
                 tickFormatter={(value: string) => format(parseISO(value), "MMM d")}
                 interval="preserveStartEnd"
                 minTickGap={32}
+                tickMargin={8}
+                tickLine={false}
                 stroke="var(--color-border)"
               />
               <YAxis
-                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
                 tickFormatter={(value: number) => `${value}%`}
                 width={48}
-                stroke="var(--color-border)"
+                tickLine={false}
+                axisLine={false}
               />
               <Tooltip
+                cursor={{ stroke: "var(--color-input)", strokeDasharray: "3 3" }}
                 contentStyle={{
                   background: "var(--color-popover)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 6,
+                  border: "none",
+                  borderRadius: 8,
+                  boxShadow: "var(--overlay-shadow)",
                   fontSize: 12,
                 }}
+                itemStyle={{ color: "var(--color-foreground)" }}
+                labelStyle={{ color: "var(--color-muted-foreground)" }}
                 labelFormatter={(value: string) => format(parseISO(value), "EEE, MMM d")}
                 formatter={(value: number) => [`${value.toFixed(2)}%`, seriesLabel]}
               />
@@ -80,10 +87,10 @@ export function TrendChart({ data, seriesLabel, seriesId }: Props) {
                 type="monotone"
                 dataKey="share"
                 name={seriesLabel}
-                stroke="var(--color-foreground)"
-                strokeWidth={1.75}
+                stroke="var(--color-chart-1)"
+                strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 3 }}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--color-card)" }}
                 isAnimationActive={false}
               />
             </LineChart>

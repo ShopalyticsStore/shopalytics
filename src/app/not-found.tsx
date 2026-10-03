@@ -4,12 +4,12 @@ export default function NotFound() {
   return (
     <main className="grid min-h-screen place-items-center bg-background px-6 text-foreground">
       <div className="max-w-sm text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">404</p>
-        <h1 className="mt-3 font-display text-3xl font-medium">Page not found</h1>
-        <p className="mt-3 text-sm text-muted-foreground">This Shopalytics view does not exist.</p>
+        <p className="text-sm font-medium text-muted-foreground">404</p>
+        <h1 className="mt-1 text-xl font-semibold tracking-tight">Page not found</h1>
+        <p className="mt-2 text-sm text-muted-foreground">This Shopalytics view does not exist.</p>
         <Link
           href="/app"
-          className="mt-6 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          className="mt-5 inline-flex h-8 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground shadow-button-primary hover:bg-primary/90"
         >
           Back to dashboard
         </Link>

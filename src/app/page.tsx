@@ -5,8 +5,9 @@ import { HeroDitheringBackground } from "@/components/hero-dithering-background"
 import { Logo } from "@/components/Logo";
 
 export default function Landing() {
+  // `dark` opts the marketing surface into its own palette and type; see styles.css.
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="dark min-h-screen">
       <SiteHeader />
       <Hero />
       <Features />
@@ -247,8 +248,8 @@ function DashboardMock() {
         <svg viewBox="0 0 300 80" className="mt-2 h-20 w-full" preserveAspectRatio="none">
           <defs>
             <linearGradient id="lp" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
             </linearGradient>
           </defs>
           <path
@@ -258,7 +259,7 @@ function DashboardMock() {
           <path
             d="M0,30 L20,28 L40,34 L60,26 L80,32 L100,22 L120,28 L140,24 L160,30 L180,40 L200,48 L220,52 L240,60 L260,58 L280,64 L300,68"
             fill="none"
-            stroke="var(--color-primary)"
+            stroke="var(--primary)"
             strokeWidth="1.5"
           />
         </svg>

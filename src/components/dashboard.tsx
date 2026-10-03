@@ -291,7 +291,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <Card className="gap-0 overflow-hidden py-0 lg:col-span-3">
-          <CardHeader className="flex flex-row items-start justify-between gap-3 border-b py-5">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 border-b py-3">
             <div className="space-y-1">
               <CardTitle>Top products by revenue</CardTitle>
               <CardDescription>Last 90 days</CardDescription>
@@ -306,17 +306,17 @@ export function Dashboard() {
           <CardContent className="p-0 [&:last-child]:pb-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/20 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  <th className="px-5 py-2 font-medium">Product</th>
-                  <th className="px-5 py-2 text-right font-medium">Sessions</th>
-                  <th className="px-5 py-2 text-right font-medium">Conv.</th>
-                  <th className="px-5 py-2 text-right font-medium">Revenue</th>
+                <tr className="border-b bg-muted text-left text-xs font-medium text-muted-foreground">
+                  <th className="px-4 py-2 font-medium">Product</th>
+                  <th className="px-4 py-2 text-right font-medium">Sessions</th>
+                  <th className="px-4 py-2 text-right font-medium">Conv.</th>
+                  <th className="px-4 py-2 text-right font-medium">Revenue</th>
                 </tr>
               </thead>
               <tbody>
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">
+                    <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                       Loading…
                     </td>
                   </tr>
@@ -324,14 +324,14 @@ export function Dashboard() {
                   products.map((p) => (
                     <tr
                       key={p.productId}
-                      className="border-b transition-colors last:border-b-0 hover:bg-muted/25"
+                      className="border-b transition-colors last:border-b-0 hover:bg-muted"
                     >
-                      <td className="px-5 py-3 font-medium">{p.productName}</td>
-                      <td className="px-5 py-3 text-right tabular-nums">{fmtInt(p.sessions)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums">
+                      <td className="px-4 py-2.5 font-medium">{p.productName}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{fmtInt(p.sessions)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">
                         {fmtPct(p.conversionRate)}
                       </td>
-                      <td className="px-5 py-3 text-right tabular-nums">
+                      <td className="px-4 py-2.5 text-right tabular-nums">
                         {fmtUsd(p.revenueCents)}
                       </td>
                     </tr>
@@ -343,7 +343,7 @@ export function Dashboard() {
         </Card>
 
         <Card className="gap-0 overflow-hidden py-0 lg:col-span-2">
-          <CardHeader className="flex flex-row items-start justify-between gap-3 border-b py-5">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 border-b py-3">
             <div className="space-y-1">
               <CardTitle>Recent reviews</CardTitle>
               <CardDescription>Most recent customer feedback</CardDescription>
@@ -352,10 +352,10 @@ export function Dashboard() {
           <CardContent className="p-0 [&:last-child]:pb-0">
             <ul className="divide-y">
               {reviews.length === 0 ? (
-                <li className="px-5 py-8 text-center text-sm text-muted-foreground">Loading…</li>
+                <li className="px-4 py-8 text-center text-sm text-muted-foreground">Loading…</li>
               ) : (
                 reviews.slice(0, 5).map((r) => (
-                  <li key={r.id} className="px-5 py-3 transition-colors hover:bg-muted/25">
+                  <li key={r.id} className="px-4 py-3 transition-colors hover:bg-muted">
                     <div className="flex items-center gap-2">
                       <div className="flex">
                         {Array.from({ length: 5 }).map((_, i) => (
@@ -364,28 +364,30 @@ export function Dashboard() {
                             className={cn(
                               "size-3",
                               i < r.rating
-                                ? "fill-amber-400 text-amber-400"
+                                ? "fill-rating text-rating"
                                 : "fill-none text-muted-foreground/40",
                             )}
                           />
                         ))}
                       </div>
                       <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px] uppercase tracking-wide",
-                          r.sentiment === "positive" && "border-emerald-500/30 text-emerald-500",
-                          r.sentiment === "negative" && "border-rose-500/30 text-rose-500",
-                        )}
+                        variant={
+                          r.sentiment === "positive"
+                            ? "success"
+                            : r.sentiment === "negative"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                        className="capitalize"
                       >
                         {r.sentiment}
                       </Badge>
-                      <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
+                      <span className="ml-auto text-xs tabular-nums text-muted-foreground">
                         {format(parseISO(r.date), "MMM d")}
                       </span>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-sm text-foreground/90">{r.body}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
+                    <p className="mt-1.5 line-clamp-2 text-sm text-foreground">{r.body}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {r.productName} · {r.trafficSourceName}
                     </p>
                   </li>
@@ -398,11 +400,11 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="min-h-96 gap-0 overflow-hidden py-0 lg:col-span-2">
-          <CardHeader className="border-b py-5">
+          <CardHeader className="border-b py-3">
             <CardTitle>Traffic source mix</CardTitle>
             <CardDescription>Revenue share by acquisition channel · last 90 days</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-1 bg-muted/10 p-0 [&:last-child]:pb-0">
+          <CardContent className="flex flex-1 p-0 [&:last-child]:pb-0">
             <ShareBarList aria-label="Revenue share by traffic source">
               {sourceMix.map((row) => (
                 <ShareBarListItem key={row.category} value={row.share}>
