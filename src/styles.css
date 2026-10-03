@@ -10,16 +10,22 @@
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
  *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
+ * The :root block is the workspace (`/app`): a light, neutral admin palette
+ * in the manner of a commerce admin. Grey page, white cards, near-black
+ * primary actions, one sky-blue data colour, and status colours that only
+ * ever mean status. Its values are written as the hex values they were matched
+ * to.
+ *
+ * The .dark block is the marketing surface (`/`), which opts in by putting
+ * `dark` on its root element. It keeps its own palette, type scale and weights.
  *
  * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 1. Add the variable to :root (workspace value) and .dark (marketing value)
  * 2. Register it in @theme inline as --color-<name>: var(--<name>)
  */
 
 @theme inline {
-  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-sm: calc(var(--radius) - 4px);
@@ -62,49 +68,101 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-topbar: var(--topbar);
+  --color-topbar-foreground: var(--topbar-foreground);
+  --color-topbar-muted: var(--topbar-muted);
+  --color-topbar-field: var(--topbar-field);
+  --color-link: var(--link);
+  --color-brand: var(--brand);
+  --color-success: var(--success);
+  --color-success-fill: var(--success-fill);
+  --color-success-surface: var(--success-surface);
+  --color-critical: var(--critical);
+  --color-critical-fill: var(--critical-fill);
+  --color-critical-surface: var(--critical-surface);
+  --color-rating: var(--rating);
+  --shadow-card: var(--card-shadow);
+  --shadow-button: var(--button-shadow);
+  --shadow-button-pressed: var(--button-shadow-pressed);
+  --shadow-button-primary: var(--button-primary-shadow);
+  --shadow-overlay: var(--overlay-shadow);
+}
+
+/*
+ * The workspace type scale. Body copy is 13px on a 20px line, and the weights
+ * sit between the usual stops, which the variable face supports. These are not
+ * inlined, so the marketing surface can set them back.
+ */
+@theme {
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --font-weight-normal: 450;
+  --font-weight-medium: 550;
+  --font-weight-semibold: 650;
 }
 
 :root {
-  --radius: 0.625rem;
-  /* Shopalytics — light, paper-neutral analytics palette.
-     Inspired by modern dashboard systems (Geist / efferd): high-contrast
-     near-black on warm off-white, hairline borders, single emerald accent. */
-  --background: oklch(0.985 0.002 95);
-  --foreground: oklch(0.18 0.01 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.01 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.01 260);
-  --primary: oklch(0.55 0.14 152);
-  --primary-foreground: oklch(0.99 0.005 95);
-  --secondary: oklch(0.965 0.004 260);
-  --secondary-foreground: oklch(0.22 0.012 260);
-  --muted: oklch(0.965 0.004 260);
-  --muted-foreground: oklch(0.5 0.012 260);
-  --accent: oklch(0.955 0.008 152);
-  --accent-foreground: oklch(0.22 0.012 260);
-  --destructive: oklch(0.58 0.21 25);
-  --destructive-foreground: oklch(0.99 0.005 95);
-  --border: oklch(0.92 0.004 260);
-  --input: oklch(0.94 0.004 260);
-  --ring: oklch(0.55 0.14 152);
-  --chart-1: oklch(0.55 0.14 152);
-  --chart-2: oklch(0.62 0.13 200);
-  --chart-3: oklch(0.7 0.16 70);
-  --chart-4: oklch(0.6 0.18 30);
-  --chart-5: oklch(0.55 0.16 300);
-  --sidebar: oklch(0.975 0.003 95);
-  --sidebar-foreground: oklch(0.22 0.012 260);
-  --sidebar-primary: oklch(0.55 0.14 152);
-  --sidebar-primary-foreground: oklch(0.99 0.005 95);
-  --sidebar-accent: oklch(0.94 0.006 260);
-  --sidebar-accent-foreground: oklch(0.18 0.01 260);
-  --sidebar-border: oklch(0.92 0.004 260);
-  --sidebar-ring: oklch(0.55 0.14 152);
+  --radius: 0.5rem;
+  --background: #f1f1f1;
+  --foreground: #303030;
+  --card: #ffffff;
+  --card-foreground: #303030;
+  --popover: #ffffff;
+  --popover-foreground: #303030;
+  --primary: #303030;
+  --primary-foreground: #ffffff;
+  --secondary: #e3e3e3;
+  --secondary-foreground: #303030;
+  --muted: #f7f7f7;
+  --muted-foreground: #616161;
+  --accent: #f1f1f1;
+  --accent-foreground: #303030;
+  --destructive: #c70a24;
+  --destructive-foreground: #ffffff;
+  --border: #e3e3e3;
+  --input: #8a8a8a;
+  --ring: #005bd3;
+  --chart-1: #12acf0;
+  --chart-2: #7f4afa;
+  --chart-3: #13b5a6;
+  --chart-4: #f49342;
+  --chart-5: #de3682;
+  --sidebar: #ebebeb;
+  --sidebar-foreground: #303030;
+  --sidebar-primary: #303030;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fafafa;
+  --sidebar-accent-foreground: #303030;
+  --sidebar-border: #e3e3e3;
+  --sidebar-ring: #005bd3;
+  --topbar: #0a0a0a;
+  --topbar-foreground: #e3e3e3;
+  --topbar-muted: #b5b5b5;
+  --topbar-field: #282828;
+  --link: #005bd3;
+  --brand: #6ee7b7;
+  --success: #0c5132;
+  --success-fill: #29845a;
+  --success-surface: #cdfee1;
+  --critical: #8e0b21;
+  --critical-fill: #c70a24;
+  --critical-surface: #fee8eb;
+  --rating: #e8a200;
+  --card-shadow: 0 1px 0 0 rgb(26 26 26 / 0.07);
+  --button-shadow:
+    inset 0 -1px 0 0 #b5b5b5, inset 0 0 0 1px rgb(0 0 0 / 0.1), inset 0 0.5px 0 1.5px #ffffff;
+  --button-shadow-pressed:
+    inset -1px 0 1px 0 rgb(26 26 26 / 0.12), inset 1px 0 1px 0 rgb(26 26 26 / 0.12),
+    inset 0 2px 1px 0 rgb(26 26 26 / 0.2);
+  --button-primary-shadow:
+    inset 0 -1px 0 1px rgb(0 0 0 / 0.8), inset 0 0 0 1px #303030,
+    inset 0 0.5px 0 1.5px rgb(255 255 255 / 0.25);
+  --overlay-shadow: 0 4px 6px -2px rgb(26 26 26 / 0.2), 0 0 0 1px rgb(0 0 0 / 0.06);
 }
 
 .dark {
-  /* Neutral Efferd-style dashboard shell with Shopalytics green chart accents. */
+  /* The marketing surface: black, with the Shopalytics green as its accent. */
+  --radius: 0.625rem;
   --background: #000000;
   --foreground: #f4f4f5;
   --card: #171717;
@@ -137,19 +195,57 @@
   --sidebar-accent-foreground: #f4f4f5;
   --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: #8a8a8a;
+  --link: oklch(0.72 0.17 155);
+  --success: oklch(0.77 0.17 155);
+  --success-fill: oklch(0.72 0.17 155);
+  --success-surface: oklch(0.72 0.17 155 / 0.12);
+  --critical: oklch(0.71 0.19 13);
+  --critical-fill: oklch(0.65 0.22 16);
+  --critical-surface: oklch(0.65 0.22 16 / 0.12);
+  --card-shadow: none;
+  --button-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --button-shadow-pressed: none;
+  --button-primary-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --overlay-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --text-sm: 0.875rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  background-color: var(--background);
+  color: var(--foreground);
+  color-scheme: dark;
+  font-family:
+    var(--font-geist),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  font-weight: 400;
 }
 
+/*
+ * The base rules read the raw tokens, not their --color-* aliases: an alias is
+ * resolved once on :root, so it would not follow the marketing surface's values.
+ */
 @layer base {
   * {
-    border-color: var(--color-border);
+    border-color: var(--border);
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-feature-settings: "cv11", "ss01";
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-weight: var(--font-weight-normal);
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* The marketing surface is black edge to edge, overscroll included. */
+  body:has(.dark) {
+    background-color: #000000;
   }
 
   .font-display {

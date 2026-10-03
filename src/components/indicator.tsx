@@ -9,11 +9,11 @@ export function StatusIndicator({
 }) {
   const color =
     variant === "success"
-      ? "bg-emerald-500"
+      ? "bg-success-fill"
       : variant === "warning"
         ? "bg-amber-500"
         : variant === "destructive"
-          ? "bg-red-500"
+          ? "bg-critical-fill"
           : variant === "muted"
             ? "bg-muted-foreground"
             : "bg-primary";

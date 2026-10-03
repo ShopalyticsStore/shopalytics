@@ -18,7 +18,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { MultiSelectFilter } from "./MultiSelectFilter";
-import { cn } from "@/lib/utils";
 import {
   DATE_RANGE_PRESET_LABELS,
   matchDateRangePreset,
@@ -63,6 +62,10 @@ const SELECTABLE_PRESETS: readonly Exclude<DateRangePreset, "custom">[] = [
   "last_30_days",
   "last_90_days",
 ];
+
+/** One preset in the segmented date control; the applied one reads as pressed. */
+const SEGMENT =
+  "rounded-none border-r border-border px-3 text-sm first:rounded-l-lg last:rounded-r-lg last:border-r-0 hover:bg-muted data-[active=true]:bg-secondary data-[active=true]:font-semibold data-[active=true]:shadow-button-pressed";
 
 /**
  * The stack a freshly opened dashboard shows: the last 30 days, no dimension
@@ -119,70 +122,69 @@ export function FilterBar({
 
   return (
     <div
-      className="rounded-xl border bg-card p-4"
+      className="flex flex-wrap items-center gap-2"
       data-testid="conversion-filter-bar"
       data-utrace-visual-target="conversion_filter_bar"
     >
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Date range
-          </span>
-          <div className="flex items-center gap-1.5">
-            {SELECTABLE_PRESETS.map((preset) => (
-              <Button
-                key={preset}
-                type="button"
-                size="sm"
-                variant={activePreset === preset ? "default" : "outline"}
-                className="h-9 font-normal"
-                data-testid={`date-preset-${preset}`}
-                data-utrace-target="conversion_filter_date_range"
-                data-utrace-safe-value="safe.control_label"
-                onClick={() => {
-                  const range = presetDateRange(preset, now);
-                  setState({ ...state, startDate: range.startDate, endDate: range.endDate });
-                }}
-              >
-                {DATE_RANGE_PRESET_LABELS[preset]}
-              </Button>
-            ))}
-            <Popover open={dateOpen} onOpenChange={setDateOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={activePreset === "custom" ? "default" : "outline"}
-                  size="sm"
-                  className="h-9 gap-2 font-normal"
-                  data-testid="date-preset-custom"
-                  data-utrace-target="conversion_filter_date_range"
-                >
-                  <CalendarIcon className="size-3.5 opacity-60" />
-                  <span>
-                    {state.startDate} to {state.endDate}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  numberOfMonths={2}
-                  defaultMonth={start}
-                  selected={{ from: start, to: end }}
-                  onSelect={(range) => {
-                    if (range?.from && range?.to) {
-                      setState({
-                        ...state,
-                        startDate: toUtcDateString(range.from),
-                        endDate: toUtcDateString(range.to),
-                      });
-                    }
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg bg-card shadow-button">
+          {SELECTABLE_PRESETS.map((preset) => (
+            <Button
+              key={preset}
+              type="button"
+              size="sm"
+              variant="ghost"
+              className={SEGMENT}
+              data-active={activePreset === preset}
+              data-testid={`date-preset-${preset}`}
+              data-utrace-target="conversion_filter_date_range"
+              data-utrace-safe-value="safe.control_label"
+              onClick={() => {
+                const range = presetDateRange(preset, now);
+                setState({ ...state, startDate: range.startDate, endDate: range.endDate });
+              }}
+            >
+              {DATE_RANGE_PRESET_LABELS[preset]}
+            </Button>
+          ))}
         </div>
+        <Popover open={dateOpen} onOpenChange={setDateOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 px-2.5 text-sm data-[active=true]:bg-secondary data-[active=true]:shadow-button-pressed"
+              data-active={activePreset === "custom"}
+              data-testid="date-preset-custom"
+              data-utrace-target="conversion_filter_date_range"
+            >
+              <CalendarIcon className="text-foreground/70" />
+              <span>
+                {state.startDate} to {state.endDate}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              numberOfMonths={2}
+              defaultMonth={start}
+              selected={{ from: start, to: end }}
+              onSelect={(range) => {
+                if (range?.from && range?.to) {
+                  setState({
+                    ...state,
+                    startDate: toUtcDateString(range.from),
+                    endDate: toUtcDateString(range.to),
+                  });
+                }
+              }}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
 
+      <div className="flex w-full flex-wrap items-center gap-2">
         <MultiSelectFilter
           label="Channel"
           utraceTarget="conversion_filter_channel"
@@ -232,8 +234,8 @@ export function FilterBar({
           onChange={(value) => setState({ ...state, productIds: value })}
         />
 
-        <div className={cn("ml-auto flex items-end gap-2 self-end")}>
-          <span className="pb-2 text-xs text-muted-foreground">
+        <div className="ml-auto flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">
             {activeCount} active filter{activeCount === 1 ? "" : "s"}
           </span>
           <Button
@@ -243,7 +245,7 @@ export function FilterBar({
             data-testid="filter-reset"
             data-utrace-target="conversion_filter_reset"
             data-utrace-safe-value="safe.control_label"
-            className="h-9 gap-1.5"
+            className="gap-1 px-2 text-sm"
           >
             <X className="size-3.5" />
             Reset

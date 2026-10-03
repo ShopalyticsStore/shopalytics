@@ -11,19 +11,30 @@ import {
 import "../styles.css";
 
 /**
- * Both faces are self-hosted from their `@fontsource-variable` packages rather
- * than fetched with `next/font/google`.
+ * Every face is self-hosted rather than fetched with `next/font/google`.
  *
  * A build that reaches `fonts.googleapis.com` cannot run inside a uTrace
  * implementation workspace, whose network wall admits package registries,
  * GitHub, operating-system repositories and uTrace callbacks and nothing else.
- * Reading the files out of `node_modules` keeps the build network-free apart
- * from npm, and `next/font/local` still self-hosts, subsets and preloads them
- * and still exposes the CSS variables the styles use.
+ * Reading the files from disk keeps the build network-free apart from npm, and
+ * `next/font/local` still self-hosts, subsets and preloads them and still
+ * exposes the CSS variables the styles use.
  *
- * Both are variable fonts, so one file covers the whole 400-700 range the
- * design uses.
+ * Inter sets the workspace and is vendored under `src/assets/fonts/inter` with
+ * its licence, so adding it changed no dependency. Geist and Fraunces set the
+ * marketing surface and come from their `@fontsource-variable` packages.
+ *
+ * All three are variable fonts, so one file covers every weight the design
+ * uses, including the workspace's in-between weights (450, 550, 650).
  */
+const inter = localFont({
+  src: "../assets/fonts/inter/inter-latin-wght-normal.woff2",
+  display: "swap",
+  variable: "--font-inter",
+  weight: "100 900",
+  style: "normal",
+});
+
 const geist = localFont({
   src: "../../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2",
   display: "swap",
@@ -62,8 +73,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const profile = resolveUTraceProfile(process.env[UTRACE_PUBLIC_PROFILE_ENV_NAME]);
   return (
-    <html lang="en" className={`${geist.variable} ${fraunces.variable} dark`}>
-      <body className="bg-background text-foreground [color-scheme:dark]">
+    <html lang="en" className={`${inter.variable} ${geist.variable} ${fraunces.variable}`}>
+      <body className="bg-background text-foreground">
         <UTracePreviewGate
           profile={profile}
           sdkInstallationId={requiredWhenPreview(

@@ -89,7 +89,7 @@ export function CategoryRankChart({
 
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <CardHeader className="px-6 py-6">
+      <CardHeader className="pt-4 pb-0">
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>

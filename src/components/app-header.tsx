@@ -1,42 +1,61 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { BellIcon, SearchIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger";
-import { navLinks } from "@/components/app-shared";
+import { Logo } from "@/components/Logo";
 import { NavUser } from "@/components/nav-user";
-import { BellIcon } from "lucide-react";
-import { usePathname } from "next/navigation";
+
+/** The quarter-circle that rounds the frame's top corners under the bar. */
+const FRAME_CORNER = "pointer-events-none absolute top-full size-3";
 
 export function AppHeader() {
-  const pathname = usePathname();
-  const activeItem = navLinks.find((item) => item.path === pathname) ??
-    navLinks.find((item) => item.path && pathname.startsWith(item.path)) ?? {
-      title: "Dashboard",
-    };
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 flex h-(--app-header-height) w-full shrink-0 items-center justify-between gap-2 border-b bg-background px-4 md:px-6",
-      )}
-    >
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-50 flex h-(--app-header-height) w-full shrink-0 items-center gap-3 bg-topbar px-3 text-topbar-foreground">
+      <div className="flex shrink-0 items-center gap-1 md:w-[calc(var(--sidebar-width)-0.75rem)]">
         <CustomSidebarTrigger />
-        <Separator
-          className="mr-2 h-4 data-[orientation=vertical]:self-center"
-          orientation="vertical"
-        />
-        <AppBreadcrumbs page={activeItem} />
+        <Link
+          href="/"
+          className="flex h-9 items-center gap-2 rounded-lg px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+        >
+          <Logo className="size-7" />
+          <span className="text-base font-semibold tracking-tight text-white">Shopalytics</span>
+        </Link>
       </div>
-      <div className="flex items-center gap-3">
-        <Button aria-label="Notifications" size="icon-sm" variant="outline">
+
+      <div className="flex min-w-0 flex-1 justify-center">
+        {/* Workspace search is not built yet; the field holds its place in the bar. */}
+        <div
+          aria-hidden="true"
+          className="hidden h-9 w-full max-w-[40rem] select-none items-center gap-2 rounded-[0.625rem] border border-white/10 bg-topbar-field px-3 text-sm text-topbar-muted sm:flex"
+        >
+          <SearchIcon className="size-4" />
+          <span>Search</span>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center justify-end gap-2 md:w-[calc(var(--sidebar-width)-0.75rem)]">
+        <Button
+          aria-label="Notifications"
+          size="icon"
+          variant="ghost"
+          className="text-topbar-foreground hover:bg-white/10 hover:text-white active:bg-white/15 [&_svg]:size-[1.125rem]"
+        >
           <BellIcon />
         </Button>
-        <Separator className="h-4 data-[orientation=vertical]:self-center" orientation="vertical" />
         <NavUser />
       </div>
+
+      <span
+        aria-hidden="true"
+        className={`${FRAME_CORNER} left-0 bg-[radial-gradient(circle_at_100%_100%,transparent_0.75rem,var(--topbar)_calc(0.75rem+0.5px))]`}
+      />
+      <span
+        aria-hidden="true"
+        className={`${FRAME_CORNER} right-0 bg-[radial-gradient(circle_at_0%_100%,transparent_0.75rem,var(--topbar)_calc(0.75rem+0.5px))]`}
+      />
     </header>
   );
 }

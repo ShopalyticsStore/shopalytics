@@ -4,9 +4,14 @@
  * `testId` gives the trigger and each option a stable hook, so the uTrace
  * browser SDK's annotations and any UI automation identify a control by
  * identity rather than by visible label.
+ *
+ * The trigger's accessible name is the value it shows ("All", "TikTok",
+ * "2 selected"), which is what uTrace reports the control as showing. The
+ * dimension's own name sits inside the trigger as its description, so it is
+ * read out with the control without becoming part of that name.
  */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -40,6 +45,7 @@ export function MultiSelectFilter({
   onChange,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const labelId = useId();
 
   const selectedSet = new Set(selected);
   const summary =
@@ -55,76 +61,77 @@ export function MultiSelectFilter({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            data-testid={`${testId}-trigger`}
-            data-utrace-target={utraceTarget}
-            data-utrace-safe-value="safe.control_label"
-            className={cn(
-              "h-9 justify-between gap-2 bg-card font-normal",
-              selected.length > 0 && "border-foreground/40",
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-describedby={labelId}
+          data-testid={`${testId}-trigger`}
+          data-utrace-target={utraceTarget}
+          data-utrace-safe-value="safe.control_label"
+          className="max-w-72 justify-between gap-1.5 pl-2.5 pr-1.5 text-sm"
+        >
+          <span id={labelId} aria-hidden="true" className="font-normal text-muted-foreground">
+            {label}
+          </span>
+          <span className={cn("truncate text-left", selected.length > 0 && "font-semibold")}>
+            {summary}
+          </span>
+          <div className="flex items-center gap-0.5">
+            {selected.length > 0 && (
+              <span
+                role="button"
+                tabIndex={0}
+                data-testid={`${testId}-clear`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onChange([]);
+                }}
+                className="rounded-md p-0.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </span>
             )}
-          >
-            <span className="truncate text-left">{summary}</span>
-            <div className="flex items-center gap-1">
-              {selected.length > 0 && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  data-testid={`${testId}-clear`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onChange([]);
-                  }}
-                  className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  <X className="size-3.5" />
-                </span>
-              )}
-              <ChevronDown className="size-3.5 opacity-60" />
-            </div>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-0" align="start" data-testid={`${testId}-options`}>
-          <div className="max-h-64 overflow-y-auto p-1">
-            {options.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-muted-foreground">No options</div>
-            ) : (
-              options.map((o) => {
-                const isSel = selectedSet.has(o.id);
-                return (
-                  <button
-                    key={o.id}
-                    type="button"
-                    data-testid={`${testId}-option-${o.id}`}
-                    onClick={() => toggle(o.id)}
-                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
-                  >
-                    <span
-                      className={cn(
-                        "flex size-4 items-center justify-center rounded border",
-                        isSel
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-input bg-background",
-                      )}
-                    >
-                      {isSel && <Check className="size-3" />}
-                    </span>
-                    <span className="truncate">{o.name}</span>
-                  </button>
-                );
-              })
-            )}
+            <ChevronDown className="size-4 text-foreground/70" />
           </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start" data-testid={`${testId}-options`}>
+        <div className="max-h-72 overflow-y-auto p-1.5">
+          {options.length === 0 ? (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">No options</div>
+          ) : (
+            options.map((o) => {
+              const isSel = selectedSet.has(o.id);
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  data-testid={`${testId}-option-${o.id}`}
+                  onClick={() => toggle(o.id)}
+                  className={cn(
+                    "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted",
+                    isSel && "bg-accent hover:bg-accent",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-4 shrink-0 items-center justify-center rounded border",
+                      isSel
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-input bg-card",
+                    )}
+                  >
+                    {isSel && <Check className="size-3" />}
+                  </span>
+                  <span className="truncate">{o.name}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

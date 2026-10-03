@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import {
-  LayoutGridIcon,
+  HomeIcon,
   MessageSquareTextIcon,
-  PackageIcon,
+  TagIcon,
   UsersIcon,
   SettingsIcon,
   HelpCircleIcon,
   ActivityIcon,
-  TrendingUpIcon,
+  ChartNoAxesColumnIcon,
 } from "lucide-react";
 
 export type SidebarNavItem = {
@@ -25,25 +25,27 @@ export type SidebarNavGroup = {
 
 export const navGroups: SidebarNavGroup[] = [
   {
-    label: "Overview",
+    label: "",
     items: [
-      { title: "Dashboard", path: "/app", icon: <LayoutGridIcon /> },
-      { title: "Conversion", path: "/app/conversion", icon: <TrendingUpIcon /> },
+      { title: "Dashboard", path: "/app", icon: <HomeIcon /> },
+      { title: "Conversion", path: "/app/conversion", icon: <ChartNoAxesColumnIcon /> },
       { title: "Reviews", path: "/app/reviews", icon: <MessageSquareTextIcon /> },
     ],
   },
   {
     label: "Catalog",
     items: [
-      { title: "Products", path: "/app/products", icon: <PackageIcon /> },
+      { title: "Products", path: "/app/products", icon: <TagIcon /> },
       { title: "Segments", path: "/app/segments", icon: <UsersIcon /> },
     ],
   },
-  {
-    label: "Workspace",
-    items: [{ title: "Settings", path: "/app/settings", icon: <SettingsIcon /> }],
-  },
 ];
+
+/** Settings sits apart from the rest, pinned to the foot of the navigation. */
+export const settingsNavGroup: SidebarNavGroup = {
+  label: "",
+  items: [{ title: "Settings", path: "/app/settings", icon: <SettingsIcon /> }],
+};
 
 export const footerNavLinks: SidebarNavItem[] = [
   { title: "Docs", path: "https://docs.shopalytics.app", icon: <HelpCircleIcon /> },
@@ -51,7 +53,7 @@ export const footerNavLinks: SidebarNavItem[] = [
 ];
 
 export const navLinks: SidebarNavItem[] = [
-  ...navGroups.flatMap((group) =>
+  ...[...navGroups, settingsNavGroup].flatMap((group) =>
     group.items.flatMap((item) => (item.subItems?.length ? [item, ...item.subItems] : [item])),
   ),
   ...footerNavLinks,

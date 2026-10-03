@@ -89,7 +89,7 @@ export function RevenueChart({
 
   return (
     <Card className={cn("gap-0 overflow-hidden py-0", className)}>
-      <CardHeader className="flex flex-col gap-3 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
+      <CardHeader className="flex flex-col gap-3 pt-4 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-balance">{title}</CardTitle>
         <Select
           onValueChange={(v) => setPeriodDays(Number(v) as PeriodDays)}
@@ -111,7 +111,7 @@ export function RevenueChart({
           </SelectContent>
         </Select>
       </CardHeader>
-      <CardContent className="px-6 pb-6">
+      <CardContent className="pb-4">
         <ChartContainer className="aspect-auto h-60 w-full p-0" config={chartConfig}>
           <AreaChart
             accessibilityLayer
@@ -124,7 +124,7 @@ export function RevenueChart({
                 <stop offset="100%" stopColor="var(--color-revenue)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid horizontal={false} strokeDasharray="2 2" />
+            <CartesianGrid vertical={false} />
             <XAxis
               axisLine={false}
               dataKey="date"
@@ -154,9 +154,7 @@ export function RevenueChart({
                           style={{ backgroundColor: item.color as string }}
                         />
                         <span className="text-muted-foreground">{seriesLabel}</span>
-                        <span className="ml-auto font-mono font-medium tabular-nums">
-                          {display}
-                        </span>
+                        <span className="ml-auto font-medium tabular-nums">{display}</span>
                       </>
                     );
                   }}
@@ -174,7 +172,7 @@ export function RevenueChart({
           </AreaChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex items-center justify-between border-t bg-muted/20 px-6 py-5">
+      <CardFooter className="flex items-center justify-between border-t bg-muted py-2">
         <div className="flex items-center gap-1 text-muted-foreground text-xs">
           <Delta value={growthPct}>
             <DeltaIcon />

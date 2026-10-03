@@ -14,9 +14,11 @@ nothing in this repository persists it.
 - Node.js 24 (Active LTS). The application runs under Node at every stage;
   Bun is not used.
 - Network access to an npm registry, and nothing else. `npm run build` reaches
-  no other host: both faces are self-hosted from their `@fontsource-variable`
-  packages through `next/font/local`, because a build that fetched
-  `fonts.googleapis.com` cannot run inside a uTrace implementation workspace.
+  no other host: every face is self-hosted through `next/font/local`, because a
+  build that fetched `fonts.googleapis.com` cannot run inside a uTrace
+  implementation workspace. Inter, which sets the workspace, is vendored under
+  `src/assets/fonts/inter` with its licence; Geist and Fraunces, which set the
+  marketing page, come from their `@fontsource-variable` packages.
 - Postgres 17.
 - npm 11. The project moved from Bun to npm as its package manager: the
   preview container needs one runtime and one lockfile, `npm ci` is already
