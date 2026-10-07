@@ -31,6 +31,23 @@ import {
 
 type MilestoneAttribute = Readonly<{ name: string; ruleId: string; value: string }>;
 
+/** Saved names use the manifest's existing bounded safe-value rule. */
+export function reportSavedView(
+  milestoneId: "saved_view_created" | "saved_view_reopened",
+  name: string,
+): void {
+  const status = utracePreviewStatus();
+  if (status.phase !== "ready") return;
+  status.session.annotations.milestone({
+    milestoneId,
+    severity: "info",
+    priority: "normal",
+    entityDefinitionId: null,
+    entityInstanceRef: null,
+    attributes: [{ name: "view_name", ruleId: "safe.view_name", value: name }],
+  });
+}
+
 /**
  * How long to keep looking for a ready runtime. The gate withholds the
  * application subtree until the runtime is ready, so in a preview this
