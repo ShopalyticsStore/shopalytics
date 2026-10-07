@@ -16,6 +16,14 @@ const SENTIMENT_TONES: Record<ReviewRow["sentiment"], "success" | "secondary" | 
   negative: "destructive",
 };
 
+/**
+ * What the agent may say about a review: its sentiment, date, product, and
+ * text, never the reviewer. uTrace caps the label at 120 characters.
+ */
+function reviewSummary(row: ReviewRow): string {
+  return `${row.sentiment} review, ${format(parseISO(row.date), "MMM d")}, ${row.productName}: ${row.body}`;
+}
+
 /** Reviewer names and locations are shape-preserving synthetic values. */
 export function ReviewsPanel({ rows }: Props) {
   return (
@@ -40,7 +48,9 @@ export function ReviewsPanel({ rows }: Props) {
             <article
               key={row.id}
               data-testid={`review-${row.id}`}
-              data-utrace-sensitive="true"
+              data-utrace-visual-target="conversion_review"
+              data-utrace-safe-value="safe.review_summary"
+              aria-label={reviewSummary(row)}
               className="px-4 py-3 transition-colors hover:bg-muted"
             >
               <header className="flex flex-wrap items-center gap-2">
@@ -72,7 +82,7 @@ export function ReviewsPanel({ rows }: Props) {
                 <span>&middot;</span>
                 <span>{row.demographicSegmentName}</span>
                 <span>&middot;</span>
-                <span>
+                <span data-utrace-sensitive="true">
                   {row.reviewerName}, {row.reviewerLocation}
                 </span>
                 {row.topics.length > 0 && (

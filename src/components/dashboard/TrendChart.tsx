@@ -12,6 +12,70 @@ import { format, parseISO } from "date-fns";
 import { Card } from "@/components/ui/card";
 import type { TrendPoint } from "@/lib/db";
 
+interface DotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  payload?: { date: string; share: number };
+}
+
+interface TickProps {
+  x?: number;
+  y?: number;
+  textAnchor?: "inherit" | "end" | "start" | "middle";
+  payload?: { value: string | number };
+}
+
+/**
+ * One day on the line, registered so the agent can circle exactly the point it
+ * talks about. The dot is invisible; the line itself is what the user reads.
+ */
+function DayPoint({ cx, cy, payload }: DotProps) {
+  if (cx === undefined || cy === undefined || payload === undefined) return <g />;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={6}
+      fill="transparent"
+      aria-label={`${format(parseISO(payload.date), "MMM d")}: ${payload.share.toFixed(2)}%`}
+      data-utrace-visual-target="conversion_trend_point"
+      data-utrace-safe-value="safe.control_label"
+    />
+  );
+}
+
+/** An axis label, registered under the axis it belongs to. */
+function AxisLabel({
+  x,
+  y,
+  textAnchor,
+  payload,
+  axis,
+  text,
+}: TickProps & { axis: "Date" | "Share"; text: (value: string | number) => string }) {
+  if (x === undefined || y === undefined || payload === undefined) return <g />;
+  const label = text(payload.value);
+  return (
+    <text
+      x={x}
+      y={y}
+      dy={axis === "Date" ? "0.71em" : "0.355em"}
+      textAnchor={textAnchor}
+      fontSize={12}
+      fill="var(--color-muted-foreground)"
+      aria-label={`${axis} axis: ${label}`}
+      data-utrace-visual-target="conversion_trend_axis_label"
+      data-utrace-safe-value="safe.control_label"
+    >
+      {label}
+    </text>
+  );
+}
+
+const dateTick = (value: string | number) => format(parseISO(String(value)), "MMM d");
+const shareTick = (value: string | number) => `${value}%`;
+
 interface Props {
   data: TrendPoint[];
   /** The conversion-state cohort being plotted, as the chart labels it. */
@@ -54,8 +118,7 @@ export function TrendChart({ data, seriesLabel, seriesId }: Props) {
               <CartesianGrid stroke="var(--color-border)" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                tickFormatter={(value: string) => format(parseISO(value), "MMM d")}
+                tick={(props: TickProps) => <AxisLabel {...props} axis="Date" text={dateTick} />}
                 interval="preserveStartEnd"
                 minTickGap={32}
                 tickMargin={8}
@@ -63,8 +126,7 @@ export function TrendChart({ data, seriesLabel, seriesId }: Props) {
                 stroke="var(--color-border)"
               />
               <YAxis
-                tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                tickFormatter={(value: number) => `${value}%`}
+                tick={(props: TickProps) => <AxisLabel {...props} axis="Share" text={shareTick} />}
                 width={48}
                 tickLine={false}
                 axisLine={false}
@@ -89,7 +151,7 @@ export function TrendChart({ data, seriesLabel, seriesId }: Props) {
                 name={seriesLabel}
                 stroke="var(--color-chart-1)"
                 strokeWidth={2}
-                dot={false}
+                dot={(props: DotProps) => <DayPoint key={props.index} {...props} />}
                 activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--color-card)" }}
                 isAnimationActive={false}
               />

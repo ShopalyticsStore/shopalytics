@@ -44,6 +44,9 @@ export function ProductTable({ rows, seriesLabel }: Props) {
                   key={row.productId}
                   data-testid={`product-row-${row.productId}`}
                   data-utrace-entity={`dudulemon_product:${row.productId}`}
+                  data-utrace-visual-target="conversion_product_row"
+                  data-utrace-safe-value="safe.control_label"
+                  aria-label={`${row.productName} row`}
                   className="border-b transition-colors last:border-b-0 hover:bg-muted"
                 >
                   <td className="px-4 py-2 font-medium">{row.productName}</td>

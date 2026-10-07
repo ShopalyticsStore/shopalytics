@@ -157,6 +157,8 @@ export function FilterBar({
               data-active={activePreset === "custom"}
               data-testid="date-preset-custom"
               data-utrace-target="conversion_filter_date_range"
+              data-utrace-safe-value="safe.control_label"
+              aria-label={`Custom range: ${state.startDate} to ${state.endDate}`}
             >
               <CalendarIcon className="text-foreground/70" />
               <span>

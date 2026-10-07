@@ -256,6 +256,46 @@
       "route_templates": [
         "/app/conversion"
       ]
+    },
+    {
+      "definition_id": "conversion_trend_point",
+      "effects": [
+        "visual_guidance"
+      ],
+      "detail_fields": [],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_trend_axis_label",
+      "effects": [
+        "visual_guidance"
+      ],
+      "detail_fields": [],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_product_row",
+      "effects": [
+        "visual_guidance"
+      ],
+      "detail_fields": [],
+      "route_templates": [
+        "/app/conversion"
+      ]
+    },
+    {
+      "definition_id": "conversion_review",
+      "effects": [
+        "visual_guidance"
+      ],
+      "detail_fields": [],
+      "route_templates": [
+        "/app/conversion"
+      ]
     }
   ],
   "milestones": [
@@ -328,6 +368,14 @@
         ],
         "output_class": "bounded_safe_value",
         "max_length": 60
+      },
+      {
+        "rule_id": "safe.review_summary",
+        "allowed_kinds": [
+          "accessible_label"
+        ],
+        "output_class": "bounded_safe_value",
+        "max_length": 120
       },
       {
         "rule_id": "safe.date_range_preset",

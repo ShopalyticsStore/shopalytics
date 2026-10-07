@@ -59,6 +59,8 @@ function Kpi({
       className="gap-0 p-4"
       data-testid={testId}
       data-utrace-visual-target="conversion_kpi_cards"
+      data-utrace-safe-value="safe.control_label"
+      aria-label={`${label}: ${value}`}
     >
       <div className="text-sm font-semibold">{label}</div>
       <div className="mt-1 text-xl font-semibold leading-7 tabular-nums tracking-tight">
