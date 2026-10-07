@@ -19,7 +19,7 @@ import type {
 
 type ApiBody =
   | { action: "dashboardContext" }
-  | { action: "products"; accountId: string }
+  | { action: "products" }
   | { action: "trafficSources" }
   | { action: "demographicSegments" }
   | { action: "reviewTopics" }
@@ -28,8 +28,8 @@ type ApiBody =
   | { action: "productBreakdown"; filters: AnalyticsFilters }
   | { action: "conversionTrend"; filters: AnalyticsFilters }
   | { action: "reviews"; filters: AnalyticsFilters; limit: number }
-  | { action: "segmentBreakdown"; accountId: string; startDate: string; endDate: string }
-  | { action: "productSentiment"; accountId: string };
+  | { action: "segmentBreakdown"; startDate: string; endDate: string }
+  | { action: "productSentiment" };
 
 async function shopalyticsApi<T>(body: ApiBody): Promise<T> {
   const response = await fetch("/api/shopalytics", {
@@ -53,8 +53,8 @@ export function getDashboardContext(): Promise<DashboardContext> {
   return shopalyticsApi({ action: "dashboardContext" });
 }
 
-export function getProducts(accountId: string): Promise<DimensionRow[]> {
-  return shopalyticsApi({ action: "products", accountId });
+export function getProducts(): Promise<DimensionRow[]> {
+  return shopalyticsApi({ action: "products" });
 }
 
 export function getTrafficSources(): Promise<DimensionRow[]> {
@@ -89,14 +89,10 @@ export function getReviews(filters: AnalyticsFilters, limit: number): Promise<Re
   return shopalyticsApi({ action: "reviews", filters, limit });
 }
 
-export function getSegmentBreakdown(
-  accountId: string,
-  startDate: string,
-  endDate: string,
-): Promise<SegmentRow[]> {
-  return shopalyticsApi({ action: "segmentBreakdown", accountId, startDate, endDate });
+export function getSegmentBreakdown(startDate: string, endDate: string): Promise<SegmentRow[]> {
+  return shopalyticsApi({ action: "segmentBreakdown", startDate, endDate });
 }
 
-export function getProductSentiment(accountId: string): Promise<ProductSentiment[]> {
-  return shopalyticsApi({ action: "productSentiment", accountId });
+export function getProductSentiment(): Promise<ProductSentiment[]> {
+  return shopalyticsApi({ action: "productSentiment" });
 }

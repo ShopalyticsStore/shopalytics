@@ -51,7 +51,7 @@ export default function ReviewsPage() {
     queries: [
       {
         queryKey: ["products", accountId],
-        queryFn: () => getProducts(accountId!),
+        queryFn: getProducts,
         enabled: accountId !== undefined,
       },
     ],
@@ -124,10 +124,7 @@ function LoadedReviews({
     createDefaultFilterState(now, defaultConversionStateIds),
   );
 
-  const filters = useMemo<AnalyticsFilters>(
-    () => ({ accountId: context.account.id, ...filterState }),
-    [context.account.id, filterState],
-  );
+  const filters: AnalyticsFilters = filterState;
 
   const reviewsQuery = useQueries({
     queries: [

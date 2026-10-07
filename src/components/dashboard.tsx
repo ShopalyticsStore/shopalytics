@@ -76,7 +76,6 @@ function useOverviewScope(): {
     if (context === undefined || states === undefined || now === null) return null;
     const range = presetDateRange("last_90_days", now);
     return {
-      accountId: context.account.id,
       productIds: [],
       trafficSourceIds: [],
       demographicSegmentIds: [],
@@ -125,7 +124,7 @@ export function Dashboard() {
       },
       {
         queryKey: ["dash-segments", accountId, filters?.startDate, filters?.endDate],
-        queryFn: () => getSegmentBreakdown(accountId!, filters!.startDate, filters!.endDate),
+        queryFn: () => getSegmentBreakdown(filters!.startDate, filters!.endDate),
         enabled: filters !== null,
       },
     ],

@@ -23,8 +23,8 @@
 
 export type Sentiment = "positive" | "neutral" | "negative";
 
+/** A filter stack; the account it reads is always the signed-in user's own. */
 export interface AnalyticsFilters {
-  accountId: string;
   productIds: string[];
   trafficSourceIds: string[];
   demographicSegmentIds: string[];

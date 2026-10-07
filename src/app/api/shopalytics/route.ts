@@ -3,6 +3,8 @@
  *
  * Requests are validated at the boundary: an unknown action or a malformed
  * filter stack is a 400 naming the problem, never a partially applied filter.
+ * Every query reads the signed-in user's own account, resolved here from their
+ * identity; a request body cannot name an account.
  */
 
 import { NextResponse } from "next/server";
@@ -31,7 +33,6 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "must be a yyyy-mm-dd d
 
 const analyticsFiltersSchema = z
   .object({
-    accountId: uuid,
     productIds: z.array(uuid),
     trafficSourceIds: z.array(uuid),
     demographicSegmentIds: z.array(uuid),
@@ -45,7 +46,7 @@ const analyticsFiltersSchema = z
 
 const requestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("dashboardContext") }).strict(),
-  z.object({ action: z.literal("products"), accountId: uuid }).strict(),
+  z.object({ action: z.literal("products") }).strict(),
   z.object({ action: z.literal("trafficSources") }).strict(),
   z.object({ action: z.literal("demographicSegments") }).strict(),
   z.object({ action: z.literal("reviewTopics") }).strict(),
@@ -63,12 +64,11 @@ const requestSchema = z.discriminatedUnion("action", [
   z
     .object({
       action: z.literal("segmentBreakdown"),
-      accountId: uuid,
       startDate: isoDate,
       endDate: isoDate,
     })
     .strict(),
-  z.object({ action: z.literal("productSentiment"), accountId: uuid }).strict(),
+  z.object({ action: z.literal("productSentiment") }).strict(),
 ]);
 
 function json(payload: unknown): NextResponse {
@@ -97,13 +97,15 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const identity = await resolveRequestIdentity(new Date());
+    const context = await getDashboardContext(identity.authenticatedVia, identity.email);
+    const accountId = context.account.id;
     const command = parsed.data;
 
     switch (command.action) {
       case "dashboardContext":
-        return json(await getDashboardContext(identity.authenticatedVia, identity.email));
+        return json(context);
       case "products":
-        return json(await getProducts(command.accountId));
+        return json(await getProducts(accountId));
       case "trafficSources":
         return json(await getTrafficSources());
       case "demographicSegments":
@@ -113,19 +115,17 @@ export async function POST(request: Request): Promise<NextResponse> {
       case "conversionStates":
         return json(await getConversionStates());
       case "kpis":
-        return json(await getKpis(command.filters));
+        return json(await getKpis(accountId, command.filters));
       case "productBreakdown":
-        return json(await getProductBreakdown(command.filters));
+        return json(await getProductBreakdown(accountId, command.filters));
       case "conversionTrend":
-        return json(await getConversionTrend(command.filters));
+        return json(await getConversionTrend(accountId, command.filters));
       case "reviews":
-        return json(await getReviews(command.filters, command.limit));
+        return json(await getReviews(accountId, command.filters, command.limit));
       case "segmentBreakdown":
-        return json(
-          await getSegmentBreakdown(command.accountId, command.startDate, command.endDate),
-        );
+        return json(await getSegmentBreakdown(accountId, command.startDate, command.endDate));
       case "productSentiment":
-        return json(await getProductSentiment(command.accountId));
+        return json(await getProductSentiment(accountId));
     }
   } catch (error) {
     if (error instanceof UnauthenticatedPreviewError) {

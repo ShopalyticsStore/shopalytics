@@ -99,9 +99,9 @@ const METRIC_WHERE = `
     )
 `;
 
-function filteredMetricParams(filters: AnalyticsFilters): SqlValue[] {
+function filteredMetricParams(accountId: string, filters: AnalyticsFilters): SqlValue[] {
   return [
-    filters.accountId,
+    accountId,
     filters.startDate,
     filters.endDate,
     nonEmpty(filters.productIds),
@@ -114,9 +114,9 @@ function filteredMetricParams(filters: AnalyticsFilters): SqlValue[] {
 }
 
 /** The same date range and conversion states, account-wide. */
-function baselineMetricParams(filters: AnalyticsFilters): SqlValue[] {
+function baselineMetricParams(accountId: string, filters: AnalyticsFilters): SqlValue[] {
   return [
-    filters.accountId,
+    accountId,
     filters.startDate,
     filters.endDate,
     null,
@@ -166,10 +166,10 @@ function toKpi(row: CountedRow | undefined): KpiSummary {
   };
 }
 
-/** The seeded Dudulemon account and its growth lead, plus the fixture clock. */
+/** The signed-in user and the one account they belong to, plus the fixture clock. */
 export async function getDashboardContext(
   authenticatedVia: DashboardContext["authenticatedVia"],
-  signedInUserEmail: string | null,
+  signedInUserEmail: string,
 ): Promise<DashboardContext> {
   const rows = await queryRows<
     QueryResultRow & {
@@ -191,20 +191,14 @@ export async function getDashboardContext(
         u.role
       FROM accounts a
       JOIN users u ON u.account_id = a.id
-      WHERE ($1::text IS NULL OR u.email = $1::text)
-      ORDER BY u.created_at ASC
-      LIMIT 1
+      WHERE u.email = $1::text
     `,
     [signedInUserEmail],
   );
 
   const row = rows[0];
   if (row === undefined) {
-    throw new Error(
-      signedInUserEmail === null
-        ? "the Dudulemon fixture has not been seeded into this database."
-        : `no seeded Dudulemon user matches "${signedInUserEmail}".`,
-    );
+    throw new Error(`no seeded Dudulemon user matches "${signedInUserEmail}".`);
   }
 
   const clock = resolveFixtureClock(process.env[FIXTURE_CLOCK_ENV_NAME]);
@@ -261,20 +255,26 @@ export function getConversionStates(): Promise<ConversionStateRow[]> {
   );
 }
 
-export async function getKpis(filters: AnalyticsFilters): Promise<KpiWithBaseline> {
+export async function getKpis(
+  accountId: string,
+  filters: AnalyticsFilters,
+): Promise<KpiWithBaseline> {
   const statement = `SELECT ${METRIC_AGGREGATES} ${METRIC_FROM} ${METRIC_WHERE}`;
   const [filtered, baseline] = await Promise.all([
-    queryRows<CountedRow>(statement, filteredMetricParams(filters)),
-    queryRows<CountedRow>(statement, baselineMetricParams(filters)),
+    queryRows<CountedRow>(statement, filteredMetricParams(accountId, filters)),
+    queryRows<CountedRow>(statement, baselineMetricParams(accountId, filters)),
   ]);
   return { filtered: toKpi(filtered[0]), baseline: toKpi(baseline[0]) };
 }
 
-export async function getConversionTrend(filters: AnalyticsFilters): Promise<TrendPoint[]> {
+export async function getConversionTrend(
+  accountId: string,
+  filters: AnalyticsFilters,
+): Promise<TrendPoint[]> {
   const rows = await queryRows<CountedRow & { date: string }>(
     `SELECT m.date::text AS date, ${METRIC_AGGREGATES} ${METRIC_FROM} ${METRIC_WHERE}
      GROUP BY m.date ORDER BY m.date ASC`,
-    filteredMetricParams(filters),
+    filteredMetricParams(accountId, filters),
   );
 
   return rows.map((row) => {
@@ -292,12 +292,15 @@ export async function getConversionTrend(filters: AnalyticsFilters): Promise<Tre
   });
 }
 
-export async function getProductBreakdown(filters: AnalyticsFilters): Promise<ProductRow[]> {
+export async function getProductBreakdown(
+  accountId: string,
+  filters: AnalyticsFilters,
+): Promise<ProductRow[]> {
   const rows = await queryRows<CountedRow & { product_id: string; product_name: string }>(
     `SELECT p.id AS product_id, p.name AS product_name, ${METRIC_AGGREGATES}
      ${METRIC_FROM_WITH_PRODUCT} ${METRIC_WHERE}
      GROUP BY p.id, p.name ORDER BY SUM(m.sessions) DESC`,
-    filteredMetricParams(filters),
+    filteredMetricParams(accountId, filters),
   );
 
   return rows.map((row) => {
@@ -317,7 +320,11 @@ export async function getProductBreakdown(filters: AnalyticsFilters): Promise<Pr
   });
 }
 
-export async function getReviews(filters: AnalyticsFilters, limit: number): Promise<ReviewRow[]> {
+export async function getReviews(
+  accountId: string,
+  filters: AnalyticsFilters,
+  limit: number,
+): Promise<ReviewRow[]> {
   const rows = await queryRows<
     QueryResultRow & {
       id: string;
@@ -375,7 +382,7 @@ export async function getReviews(filters: AnalyticsFilters, limit: number): Prom
       LIMIT $9::int
     `,
     [
-      filters.accountId,
+      accountId,
       filters.startDate,
       filters.endDate,
       nonEmpty(filters.productIds),

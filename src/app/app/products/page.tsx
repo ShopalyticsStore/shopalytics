@@ -45,7 +45,6 @@ export default function ProductsPage() {
     const now = resolveDashboardNow(contextQuery.data?.fixtureClock ?? null, new Date());
     const range = presetDateRange("last_90_days", now);
     return {
-      accountId,
       productIds: [],
       trafficSourceIds: [],
       demographicSegmentIds: [],
@@ -64,7 +63,7 @@ export default function ProductsPage() {
   });
   const sentimentQ = useQuery({
     queryKey: ["product-sentiment", accountId],
-    queryFn: () => getProductSentiment(accountId!),
+    queryFn: getProductSentiment,
     enabled: accountId !== undefined,
   });
 

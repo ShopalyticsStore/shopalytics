@@ -20,7 +20,7 @@ export default function SegmentsPage() {
 
   const segQ = useQuery({
     queryKey: ["segments-breakdown", accountId, range],
-    queryFn: () => getSegmentBreakdown(accountId!, range!.startDate, range!.endDate),
+    queryFn: () => getSegmentBreakdown(range!.startDate, range!.endDate),
     enabled: accountId !== undefined && range !== null,
   });
 

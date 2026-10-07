@@ -36,7 +36,7 @@ export default function ConversionPage() {
     queries: [
       {
         queryKey: ["products", accountId],
-        queryFn: () => getProducts(accountId!),
+        queryFn: getProducts,
         enabled: accountId !== undefined,
       },
     ],
