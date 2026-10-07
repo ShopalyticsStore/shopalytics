@@ -11,6 +11,7 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
 
 import type {
   AnalyticsFilters,
@@ -22,6 +23,8 @@ import type {
   ProductRow,
   ProductSentiment,
   ReviewRow,
+  SavedConversionView,
+  SavedViewFilters,
   SegmentRow,
   Sentiment,
   TrendPoint,
@@ -231,6 +234,48 @@ export function getProducts(accountId: string): Promise<DimensionRow[]> {
     `SELECT id, name FROM products WHERE account_id = $1::uuid ORDER BY name ASC`,
     [accountId],
   );
+}
+
+// Existing seeded runtimes can adopt this additive table without reseeding.
+async function ensureSavedViewsTable(): Promise<void> {
+  await queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_conversion_views (
+      id uuid PRIMARY KEY,
+      account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name text NOT NULL CHECK (length(name) BETWEEN 1 AND 60),
+      filters jsonb NOT NULL,
+      UNIQUE (account_id, user_id, name)
+    )`,
+    [],
+  );
+}
+
+export async function getSavedConversionViews(
+  context: DashboardContext,
+): Promise<SavedConversionView[]> {
+  await ensureSavedViewsTable();
+  return queryRows<SavedConversionView & QueryResultRow>(
+    `SELECT id, name, filters FROM saved_conversion_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid ORDER BY name, id`,
+    [context.account.id, context.user.id],
+  );
+}
+
+export async function saveConversionView(
+  context: DashboardContext,
+  name: string,
+  filters: SavedViewFilters,
+): Promise<SavedConversionView> {
+  await ensureSavedViewsTable();
+  const rows = await queryRows<SavedConversionView & QueryResultRow>(
+    `INSERT INTO saved_conversion_views (id, account_id, user_id, name, filters)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::text, $5::jsonb)
+     ON CONFLICT (account_id, user_id, name) DO UPDATE SET filters = EXCLUDED.filters
+     RETURNING id, name, filters`,
+    [randomUUID(), context.account.id, context.user.id, name, JSON.stringify(filters)],
+  );
+  return rows[0]!;
 }
 
 export function getTrafficSources(): Promise<DimensionRow[]> {

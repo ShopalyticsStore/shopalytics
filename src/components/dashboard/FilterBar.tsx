@@ -2,9 +2,7 @@
  * The conversion filter stack: date range, channel, demographic segment,
  * review topic, sentiment, conversion state and product.
  *
- * The stack lives in React state and nothing persists it. Leaving or reloading
- * the dashboard loses it, which is the workflow problem the uTrace demo is
- * about; do not add local storage, a URL parameter or a saved view here.
+ * The dashboard owns this state and can save and restore its complete snapshot.
  *
  * "Now" comes from the fixture clock so `Last 30 days` selects the same rows on
  * every run.

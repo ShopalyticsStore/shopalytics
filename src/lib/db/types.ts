@@ -42,6 +42,14 @@ export interface DimensionRow {
   name: string;
 }
 
+export type SavedViewFilters = Omit<AnalyticsFilters, "accountId">;
+
+export interface SavedConversionView {
+  id: string;
+  name: string;
+  filters: SavedViewFilters;
+}
+
 export interface ConversionStateRow extends DimensionRow {
   key: string;
   ordinal: number;

@@ -124,6 +124,13 @@ interface DescribedMilestone {
 
 function describe(event: ChartStateEvent): DescribedMilestone {
   switch (event.type) {
+    case "saved_view_created":
+    case "saved_view_reopened":
+      return {
+        milestoneId: event.type,
+        entityInstanceRef: null,
+        attributes: [{ name: "view_name", ruleId: "safe.view_name", value: event.viewName }],
+      };
     case "filters_applied": {
       const filters = event.filters;
       return {

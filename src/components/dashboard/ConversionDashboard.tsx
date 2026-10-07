@@ -3,10 +3,8 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named views persist the complete filter stack for the signed-in owner and
+ * restore it through the same analytics queries used by the filter controls.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -15,7 +13,14 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQueries } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQueries,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import {
@@ -34,6 +39,8 @@ import {
   getKpis,
   getProductBreakdown,
   getReviews,
+  getSavedConversionViews,
+  saveConversionView,
   type AnalyticsFilters,
   type ConversionStateRow,
   type DashboardContext,
@@ -79,6 +86,13 @@ function selectedDimensions(
 
 export function ConversionDashboard({ context, now, dimensions }: Props) {
   const channel = useChartStateChannel();
+  const queryClient = useQueryClient();
+  const [viewName, setViewName] = useState("");
+  const savedViewsKey = ["saved-conversion-views", context.account.id, context.user.id];
+  const savedViewsQuery = useQuery({
+    queryKey: savedViewsKey,
+    queryFn: getSavedConversionViews,
+  });
   const defaultConversionStateIds = useMemo(
     () =>
       dimensions.conversionStates
@@ -89,6 +103,14 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
   const [filterState, setFilterState] = useState<FilterState>(() =>
     createDefaultFilterState(now, defaultConversionStateIds),
   );
+  const saveView = useMutation({
+    mutationFn: () => saveConversionView(viewName.trim(), filterState),
+    onSuccess: (view) => {
+      channel.recordSavedView("saved_view_created", view.name, new Date());
+      void queryClient.invalidateQueries({ queryKey: savedViewsKey });
+      setViewName("");
+    },
+  });
 
   const filters = useMemo<AnalyticsFilters>(
     () => ({ accountId: context.account.id, ...filterState }),
@@ -166,7 +188,7 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
   }, [channel, appliedFilters]);
 
   useEffect(() => {
-    if (trendQuery.data === undefined) return;
+    if (trendQuery.data === undefined || trendQuery.isPlaceholderData) return;
     const at = new Date();
     channel.displaySeries("conversion_trend", series, at);
     channel.completeRender(
@@ -175,32 +197,32 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
       trend.length,
       at,
     );
-  }, [channel, series, trend, trendQuery.data]);
+  }, [channel, series, trend, trendQuery.data, trendQuery.isPlaceholderData]);
 
   useEffect(() => {
-    if (kpisQuery.data === undefined) return;
+    if (kpisQuery.data === undefined || kpisQuery.isPlaceholderData) return;
     channel.completeRender("conversion_kpis", "rendered", 1, new Date());
-  }, [channel, kpisQuery.data]);
+  }, [channel, kpisQuery.data, kpisQuery.isPlaceholderData]);
 
   useEffect(() => {
-    if (productsQuery.data === undefined) return;
+    if (productsQuery.data === undefined || productsQuery.isPlaceholderData) return;
     channel.completeRender(
       "product_breakdown",
       products.length === 0 ? "empty" : "rendered",
       products.length,
       new Date(),
     );
-  }, [channel, products, productsQuery.data]);
+  }, [channel, products, productsQuery.data, productsQuery.isPlaceholderData]);
 
   useEffect(() => {
-    if (reviewsQuery.data === undefined) return;
+    if (reviewsQuery.data === undefined || reviewsQuery.isPlaceholderData) return;
     channel.completeRender(
       "review_list",
       reviews.length === 0 ? "empty" : "rendered",
       reviews.length,
       new Date(),
     );
-  }, [channel, reviews, reviewsQuery.data]);
+  }, [channel, reviews, reviewsQuery.data, reviewsQuery.isPlaceholderData]);
 
   const failure = [kpisQuery.error, trendQuery.error, productsQuery.error, reviewsQuery.error].find(
     (error): error is Error => error instanceof Error,
@@ -231,6 +253,57 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
       />
+
+      <div className="flex flex-wrap items-center gap-2" aria-label="Saved views">
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!saveView.isPending) saveView.mutate();
+          }}
+        >
+          <input
+            aria-label="View name"
+            placeholder="View name"
+            required
+            maxLength={60}
+            value={viewName}
+            onChange={(event) => setViewName(event.target.value)}
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+            data-utrace-target="saved_view_name_field"
+            data-utrace-safe-value="safe.view_name"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={saveView.isPending || !/^[\w ,'-]{1,60}$/u.test(viewName.trim())}
+            data-utrace-target="saved_view_save_control"
+            data-utrace-safe-value="safe.control_label"
+          >
+            {saveView.isPending ? "Saving…" : "Save view"}
+          </Button>
+        </form>
+        {savedViewsQuery.data?.map((view) => (
+          <Button
+            key={view.id}
+            type="button"
+            variant="outline"
+            size="sm"
+            data-utrace-target="saved_view_reopen_control"
+            onClick={() => {
+              setFilterState(view.filters);
+              channel.recordSavedView("saved_view_reopened", view.name, new Date());
+            }}
+          >
+            {view.name}
+          </Button>
+        ))}
+        {(saveView.error || savedViewsQuery.error) && (
+          <p role="alert" className="text-sm text-critical">
+            {(saveView.error || savedViewsQuery.error)?.message}
+          </p>
+        )}
+      </div>
 
       {failure !== undefined && (
         <div

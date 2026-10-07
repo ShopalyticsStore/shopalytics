@@ -39,6 +39,15 @@ CREATE TABLE products (
   name text NOT NULL
 );
 
+CREATE TABLE saved_conversion_views (
+  id uuid PRIMARY KEY,
+  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL CHECK (length(name) BETWEEN 1 AND 60),
+  filters jsonb NOT NULL,
+  UNIQUE (account_id, user_id, name)
+);
+
 CREATE TABLE traffic_sources (
   id uuid PRIMARY KEY,
   name text NOT NULL UNIQUE

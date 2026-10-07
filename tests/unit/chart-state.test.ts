@@ -27,6 +27,31 @@ const STATE_KEYS = new Map([
 ]);
 
 describe("the chart state channel", () => {
+  test("saved views report creation and reopening without accepting unsafe names", () => {
+    const channel = createChartStateChannel();
+    const seen: ChartStateEvent[] = [];
+    channel.subscribe((event) => seen.push(event));
+    const at = new Date("2026-09-14T09:00:05Z");
+    channel.recordSavedView("saved_view_created", "Negative sizing", at);
+    channel.recordSavedView("saved_view_reopened", "Negative sizing", at);
+    expect(seen).toEqual([
+      {
+        type: "saved_view_created",
+        viewName: "Negative sizing",
+        sequence: 1,
+        occurredAt: at.toISOString(),
+      },
+      {
+        type: "saved_view_reopened",
+        viewName: "Negative sizing",
+        sequence: 2,
+        occurredAt: at.toISOString(),
+      },
+    ]);
+    expect(() => channel.recordSavedView("saved_view_created", "<unsafe>", at)).toThrow();
+    expect(seen).toHaveLength(2);
+  });
+
   test("publishes applied filters, series identity and rendering completion in order", () => {
     const channel = createChartStateChannel();
     const seen: ChartStateEvent[] = [];

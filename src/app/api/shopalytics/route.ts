@@ -20,8 +20,10 @@ import {
   getProducts,
   getReviewTopics,
   getReviews,
+  getSavedConversionViews,
   getSegmentBreakdown,
   getTrafficSources,
+  saveConversionView,
 } from "@/lib/server/shopalytics";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +46,19 @@ const analyticsFiltersSchema = z
   .strict();
 
 const requestSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("savedConversionViews") }).strict(),
+  z
+    .object({
+      action: z.literal("saveConversionView"),
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .max(60)
+        .regex(/^[\w ,'-]{1,60}$/u),
+      filters: analyticsFiltersSchema.omit({ accountId: true }),
+    })
+    .strict(),
   z.object({ action: z.literal("dashboardContext") }).strict(),
   z.object({ action: z.literal("products"), accountId: uuid }).strict(),
   z.object({ action: z.literal("trafficSources") }).strict(),
@@ -100,6 +115,20 @@ export async function POST(request: Request): Promise<NextResponse> {
     const command = parsed.data;
 
     switch (command.action) {
+      case "savedConversionViews": {
+        const context = await getDashboardContext(identity.authenticatedVia, identity.email);
+        const views = await getSavedConversionViews(context);
+        return json(
+          views.map((view) => ({
+            ...view,
+            filters: analyticsFiltersSchema.omit({ accountId: true }).parse(view.filters),
+          })),
+        );
+      }
+      case "saveConversionView": {
+        const context = await getDashboardContext(identity.authenticatedVia, identity.email);
+        return json(await saveConversionView(context, command.name, command.filters));
+      }
       case "dashboardContext":
         return json(await getDashboardContext(identity.authenticatedVia, identity.email));
       case "products":

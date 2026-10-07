@@ -161,6 +161,52 @@ describe("the seeded Dudulemon fixture", () => {
     expect(kpis.filtered.conversionRate).toBeCloseTo(kpis.filtered.stateShare, 10);
   });
 
+  test("saved views persist complete filters and only list for their owner", async () => {
+    const context = await shopalytics.getDashboardContext("production_profile", null);
+    const canonical = filters({
+      trafficSourceIds: [dimensions.tiktok],
+      demographicSegmentIds: [dimensions.women2534],
+      reviewTopicIds: [dimensions.sizing],
+      sentiments: ["negative"],
+    });
+    const snapshot = {
+      productIds: canonical.productIds,
+      trafficSourceIds: canonical.trafficSourceIds,
+      demographicSegmentIds: canonical.demographicSegmentIds,
+      reviewTopicIds: canonical.reviewTopicIds,
+      sentiments: canonical.sentiments,
+      conversionStateIds: canonical.conversionStateIds,
+      startDate: canonical.startDate,
+      endDate: canonical.endDate,
+    };
+    const saved = await shopalytics.saveConversionView(context, "Negative sizing", snapshot);
+    const listed = await shopalytics.getSavedConversionViews(context);
+    expect(listed).toContainEqual(saved);
+    expect(saved.filters).toEqual(snapshot);
+    expect(await shopalytics.getConversionTrend({ accountId, ...listed[0]!.filters })).toEqual(
+      await shopalytics.getConversionTrend(canonical),
+    );
+    const otherId = "66666666-6666-4666-8666-666666666666";
+    expect(
+      await shopalytics.getSavedConversionViews({
+        ...context,
+        user: { ...context.user, id: otherId },
+      }),
+    ).toEqual([]);
+    expect(
+      await shopalytics.getSavedConversionViews({
+        ...context,
+        account: { ...context.account, id: otherId },
+      }),
+    ).toEqual([]);
+    const updated = await shopalytics.saveConversionView(context, "Negative sizing", {
+      ...snapshot,
+      sentiments: [],
+    });
+    expect(updated.id).toBe(saved.id);
+    expect(await shopalytics.getSavedConversionViews(context)).toEqual([updated]);
+  });
+
   test("an adjacent channel or segment is a visibly different slice", async () => {
     const canonical = filters({
       trafficSourceIds: [dimensions.tiktok],

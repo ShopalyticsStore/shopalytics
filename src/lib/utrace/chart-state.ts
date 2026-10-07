@@ -73,6 +73,12 @@ export type RenderStatus = "rendered" | "empty";
 
 export type ChartStateEvent =
   | Readonly<{
+      type: "saved_view_created" | "saved_view_reopened";
+      sequence: number;
+      occurredAt: string;
+      viewName: string;
+    }>
+  | Readonly<{
       type: "filters_applied";
       sequence: number;
       occurredAt: string;
@@ -112,6 +118,11 @@ export type ChartStateListener = (event: ChartStateEvent) => void;
 
 export type ChartStateChannel = Readonly<{
   protocolVersion: string;
+  recordSavedView: (
+    type: "saved_view_created" | "saved_view_reopened",
+    viewName: string,
+    occurredAt: Date,
+  ) => ChartStateEvent;
   /** Records the filter values the dashboard applied. */
   applyFilters: (filters: AppliedFilterValues, occurredAt: Date) => ChartStateEvent;
   /** Records which series a surface is displaying. */
@@ -258,6 +269,15 @@ export function createChartStateChannel(): ChartStateChannel {
 
   return Object.freeze({
     protocolVersion: CHART_STATE_PROTOCOL_VERSION,
+    recordSavedView: (type, viewName, occurredAt) => {
+      if (!/^[\w ,'-]{1,60}$/u.test(viewName)) {
+        throw new Error("the view name must satisfy safe.view_name");
+      }
+      sequence += 1;
+      return emit(
+        Object.freeze({ type, sequence, occurredAt: occurredAt.toISOString(), viewName }),
+      );
+    },
     applyFilters,
     displaySeries,
     completeRender,

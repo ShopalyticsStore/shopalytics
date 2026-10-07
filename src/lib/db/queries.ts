@@ -13,11 +13,15 @@ import type {
   ProductRow,
   ProductSentiment,
   ReviewRow,
+  SavedConversionView,
+  SavedViewFilters,
   SegmentRow,
   TrendPoint,
 } from "./types";
 
 type ApiBody =
+  | { action: "saveConversionView"; name: string; filters: SavedViewFilters }
+  | { action: "savedConversionViews" }
   | { action: "dashboardContext" }
   | { action: "products"; accountId: string }
   | { action: "trafficSources" }
@@ -51,6 +55,17 @@ async function shopalyticsApi<T>(body: ApiBody): Promise<T> {
 
 export function getDashboardContext(): Promise<DashboardContext> {
   return shopalyticsApi({ action: "dashboardContext" });
+}
+
+export function getSavedConversionViews(): Promise<SavedConversionView[]> {
+  return shopalyticsApi({ action: "savedConversionViews" });
+}
+
+export function saveConversionView(
+  name: string,
+  filters: SavedViewFilters,
+): Promise<SavedConversionView> {
+  return shopalyticsApi({ action: "saveConversionView", name, filters });
 }
 
 export function getProducts(accountId: string): Promise<DimensionRow[]> {
