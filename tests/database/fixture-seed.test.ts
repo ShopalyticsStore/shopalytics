@@ -56,7 +56,6 @@ function idOf(rows: readonly { id: string; name: string }[], name: string): stri
 function filters(overrides: Partial<AnalyticsFilters>): AnalyticsFilters {
   const window = presetDateRange("last_30_days", new Date(FIXTURE_CLOCK));
   return {
-    accountId,
     productIds: [],
     trafficSourceIds: [],
     demographicSegmentIds: [],
@@ -90,7 +89,10 @@ beforeAll(async () => {
   });
 
   shopalytics = await import("@/lib/server/shopalytics");
-  const context = await shopalytics.getDashboardContext("production_profile", null);
+  const context = await shopalytics.getDashboardContext(
+    "production_profile",
+    "maya@dudulemon.example.com",
+  );
   accountId = context.account.id;
 
   const [sources, segments, topics, states] = await Promise.all([
@@ -119,6 +121,46 @@ afterAll(async () => {
 });
 
 describe("the seeded Dudulemon fixture", () => {
+  test("named views persist every filter and isolate both user and account ownership", async () => {
+    const context = await shopalytics.getDashboardContext(
+      "preview_handoff",
+      "maya@dudulemon.example.com",
+    );
+    const canonical = filters({
+      trafficSourceIds: [dimensions.tiktok],
+      demographicSegmentIds: [dimensions.women2534],
+      reviewTopicIds: [dimensions.sizing],
+      sentiments: ["negative"],
+    });
+    const saved = await shopalytics.saveView(
+      context.account.id,
+      context.user.id,
+      "Weekly sizing",
+      canonical,
+      "last_30_days",
+    );
+    const reopened = (await shopalytics.listSavedViews(context.account.id, context.user.id)).find(
+      (view) => view.id === saved.id,
+    );
+    expect(reopened?.name).toBe("Weekly sizing");
+    expect(reopened?.filters).toEqual(canonical);
+    expect(reopened?.dateRangePreset).toBe("last_30_days");
+    const restored = {
+      ...reopened!.filters,
+      ...presetDateRange("last_30_days", new Date(FIXTURE_CLOCK)),
+    };
+    expect(restored.startDate).toBe("2026-08-16");
+    expect(restored.endDate).toBe("2026-09-14");
+    expect(await shopalytics.getKpis(context.account.id, restored)).toEqual(
+      await shopalytics.getKpis(context.account.id, canonical),
+    );
+    expect(
+      await shopalytics.listSavedViews(context.account.id, "00000000-0000-4000-8000-000000000001"),
+    ).toEqual([]);
+    expect(
+      await shopalytics.listSavedViews("00000000-0000-4000-8000-000000000001", context.user.id),
+    ).toEqual([]);
+  });
   test("records the manifest identity it installed", async () => {
     const expected = buildManifest(generateDudulemonDataset());
     const rows = await client.query<{
@@ -153,7 +195,7 @@ describe("the seeded Dudulemon fixture", () => {
       sentiments: ["negative"],
     });
 
-    const kpis = await shopalytics.getKpis(canonical);
+    const kpis = await shopalytics.getKpis(accountId, canonical);
 
     expect(kpis.filtered.sessions).toBeGreaterThan(0);
     expect(kpis.filtered.stateShare).toBeGreaterThan(0);
@@ -172,9 +214,9 @@ describe("the seeded Dudulemon fixture", () => {
     const wrongSegment = { ...canonical, demographicSegmentIds: [dimensions.women3544] };
 
     const [exact, channel, segment] = await Promise.all([
-      shopalytics.getKpis(canonical),
-      shopalytics.getKpis(wrongChannel),
-      shopalytics.getKpis(wrongSegment),
+      shopalytics.getKpis(accountId, canonical),
+      shopalytics.getKpis(accountId, wrongChannel),
+      shopalytics.getKpis(accountId, wrongSegment),
     ]);
 
     expect(channel.filtered.sessions).toBeGreaterThan(0);
@@ -193,8 +235,8 @@ describe("the seeded Dudulemon fixture", () => {
       sentiments: ["negative"],
     });
 
-    const purchased = await shopalytics.getKpis(base);
-    const dropOff = await shopalytics.getKpis({
+    const purchased = await shopalytics.getKpis(accountId, base);
+    const dropOff = await shopalytics.getKpis(accountId, {
       ...base,
       conversionStateIds: [dimensions.cartDropOff],
     });
@@ -211,8 +253,9 @@ describe("the seeded Dudulemon fixture", () => {
       sentiments: ["negative"],
     });
 
-    const reviews = await shopalytics.getReviews(canonical, 200);
+    const reviews = await shopalytics.getReviews(accountId, canonical, 200);
     const nearMissTopic = await shopalytics.getReviews(
+      accountId,
       { ...canonical, reviewTopicIds: [dimensions.fitConsistency] },
       200,
     );
@@ -238,8 +281,9 @@ describe("the seeded Dudulemon fixture", () => {
       sentiments: ["negative"],
     });
 
-    const inside = await shopalytics.getReviews(canonical, 200);
+    const inside = await shopalytics.getReviews(accountId, canonical, 200);
     const outside = await shopalytics.getReviews(
+      accountId,
       {
         ...canonical,
         startDate: toUtcDateString(shiftUtcDays(clock, -119)),

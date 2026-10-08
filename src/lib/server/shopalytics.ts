@@ -11,6 +11,7 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
 
 import type {
   AnalyticsFilters,
@@ -22,12 +23,59 @@ import type {
   ProductRow,
   ProductSentiment,
   ReviewRow,
+  SavedConversionView,
   SegmentRow,
   Sentiment,
   TrendPoint,
 } from "@/lib/db/types";
 import { FIXTURE_CLOCK_ENV_NAME, resolveFixtureClock } from "@/lib/fixture/clock";
 import { queryRows } from "./db";
+
+// Also supports already seeded preview databases without reseeding their data.
+async function ensureSavedViews(): Promise<void> {
+  await queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_conversion_views (
+    id uuid PRIMARY KEY,
+    account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    filters jsonb NOT NULL,
+    date_range_preset text NOT NULL CHECK (date_range_preset IN ('last_7_days', 'last_30_days', 'last_90_days', 'custom')),
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+    [],
+  );
+}
+
+export async function listSavedViews(
+  accountId: string,
+  userId: string,
+): Promise<SavedConversionView[]> {
+  await ensureSavedViews();
+  return queryRows<SavedConversionView & QueryResultRow>(
+    `SELECT id, name, filters, date_range_preset AS "dateRangePreset"
+     FROM saved_conversion_views WHERE account_id = $1::uuid AND user_id = $2::uuid
+     ORDER BY created_at DESC, id`,
+    [accountId, userId],
+  );
+}
+
+export async function saveView(
+  accountId: string,
+  userId: string,
+  name: string,
+  filters: AnalyticsFilters,
+  dateRangePreset: SavedConversionView["dateRangePreset"],
+): Promise<SavedConversionView> {
+  await ensureSavedViews();
+  const rows = await queryRows<SavedConversionView & QueryResultRow>(
+    `INSERT INTO saved_conversion_views (id, account_id, user_id, name, filters, date_range_preset)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::text, $5::jsonb, $6::text)
+     RETURNING id, name, filters, date_range_preset AS "dateRangePreset"`,
+    [randomUUID(), accountId, userId, name, JSON.stringify(filters), dateRangePreset],
+  );
+  return rows[0];
+}
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
 

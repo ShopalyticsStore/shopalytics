@@ -3,10 +3,7 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named views persist the filter stack for the signed-in user and account.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -15,7 +12,9 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQueries } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import { utracePreviewStatus } from "@utrace/browser-sdk/next";
+import { Button } from "@/components/ui/button";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import {
@@ -34,12 +33,14 @@ import {
   getKpis,
   getProductBreakdown,
   getReviews,
+  listSavedViews,
+  saveView,
   type AnalyticsFilters,
   type ConversionStateRow,
   type DashboardContext,
   type DimensionRow,
 } from "@/lib/db";
-import { matchDateRangePreset } from "@/lib/fixture/clock";
+import { matchDateRangePreset, presetDateRange } from "@/lib/fixture/clock";
 import {
   buildSeriesIdentity,
   type AppliedFilterValues,
@@ -91,6 +92,27 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
   );
 
   const filters: AnalyticsFilters = filterState;
+  const [viewName, setViewName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [viewError, setViewError] = useState<string | null>(null);
+  const savedViews = useQuery({
+    queryKey: ["saved-conversion-views", context.account.id, context.user.id],
+    queryFn: listSavedViews,
+  });
+
+  function reportView(milestoneId: string, name: string) {
+    const status = utracePreviewStatus();
+    if (status.phase === "ready") {
+      status.session.annotations.milestone({
+        milestoneId,
+        severity: "info",
+        priority: "normal",
+        entityDefinitionId: null,
+        entityInstanceRef: null,
+        attributes: [{ name: "view_name", ruleId: "safe.view_name", value: name }],
+      });
+    }
+  }
 
   const appliedFilters = useMemo<AppliedFilterValues>(
     () => ({
@@ -228,6 +250,77 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
       />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <form
+          className="flex items-center gap-2"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setSaving(true);
+            setViewError(null);
+            try {
+              const view = await saveView(
+                viewName.trim(),
+                filters,
+                matchDateRangePreset(filters, now),
+              );
+              reportView("saved_view_created", view.name);
+              setViewName("");
+              await savedViews.refetch();
+            } catch (error) {
+              setViewError(error instanceof Error ? error.message : "Could not save view");
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          <input
+            aria-label="View name"
+            placeholder="View name"
+            required
+            maxLength={60}
+            value={viewName}
+            onChange={(event) => setViewName(event.target.value)}
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+            data-utrace-target="saved_view_name_field"
+            data-utrace-safe-value="safe.view_name"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={saving || !viewName.trim()}
+            data-utrace-target="saved_view_save_control"
+            data-utrace-safe-value="safe.control_label"
+          >
+            {saving ? "Saving…" : "Save view"}
+          </Button>
+        </form>
+        {savedViews.data?.map((view) => (
+          <Button
+            key={view.id}
+            type="button"
+            size="sm"
+            variant="outline"
+            data-utrace-target="saved_view_reopen_control"
+            onClick={() => {
+              setFilterState({
+                ...view.filters,
+                ...(view.dateRangePreset === "custom"
+                  ? {}
+                  : presetDateRange(view.dateRangePreset, now)),
+              });
+              reportView("saved_view_reopened", view.name);
+            }}
+          >
+            {view.name}
+          </Button>
+        ))}
+      </div>
+      {(viewError || savedViews.error) && (
+        <div role="alert" className="text-sm text-critical">
+          {viewError ?? savedViews.error?.message}
+        </div>
+      )}
 
       {failure !== undefined && (
         <div

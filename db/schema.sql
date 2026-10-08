@@ -6,6 +6,7 @@
 -- schema needs no UUID generation extension.
 
 DROP TABLE IF EXISTS utrace_preview_handoff_consumption CASCADE;
+DROP TABLE IF EXISTS saved_conversion_views CASCADE;
 DROP TABLE IF EXISTS fixture_manifest CASCADE;
 DROP TABLE IF EXISTS customer_review_topics CASCADE;
 DROP TABLE IF EXISTS customer_reviews CASCADE;
@@ -38,6 +39,17 @@ CREATE TABLE products (
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   name text NOT NULL
 );
+
+CREATE TABLE saved_conversion_views (
+  id uuid PRIMARY KEY,
+  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  filters jsonb NOT NULL,
+  date_range_preset text NOT NULL CHECK (date_range_preset IN ('last_7_days', 'last_30_days', 'last_90_days', 'custom')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_saved_views_owner ON saved_conversion_views(account_id, user_id);
 
 CREATE TABLE traffic_sources (
   id uuid PRIMARY KEY,
