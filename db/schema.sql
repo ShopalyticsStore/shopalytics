@@ -7,6 +7,7 @@
 
 DROP TABLE IF EXISTS utrace_preview_handoff_consumption CASCADE;
 DROP TABLE IF EXISTS fixture_manifest CASCADE;
+DROP TABLE IF EXISTS saved_conversion_views CASCADE;
 DROP TABLE IF EXISTS customer_review_topics CASCADE;
 DROP TABLE IF EXISTS customer_reviews CASCADE;
 DROP TABLE IF EXISTS conversion_daily_metrics CASCADE;
@@ -38,6 +39,18 @@ CREATE TABLE products (
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   name text NOT NULL
 );
+
+CREATE TABLE saved_conversion_views (
+  id uuid PRIMARY KEY,
+  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL CHECK (length(name) BETWEEN 1 AND 60),
+  filters jsonb NOT NULL,
+  date_preset text NOT NULL CHECK (date_preset IN ('custom', 'last_7_days', 'last_30_days', 'last_90_days')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_saved_views_owner ON saved_conversion_views(account_id, user_id);
 
 CREATE TABLE traffic_sources (
   id uuid PRIMARY KEY,

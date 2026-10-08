@@ -9,10 +9,14 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { presetDateRange, resolveDashboardNow } from "@/lib/fixture/clock";
 
 import { UnauthenticatedPreviewError, resolveRequestIdentity } from "@/lib/server/request-identity";
 import {
   getConversionStates,
+  getSavedViews,
+  saveView,
+  reopenView,
   getConversionTrend,
   getDashboardContext,
   getDemographicSegments,
@@ -45,6 +49,21 @@ const analyticsFiltersSchema = z
   .strict();
 
 const requestSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("savedViews") }).strict(),
+  z
+    .object({
+      action: z.literal("saveView"),
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .max(60)
+        .regex(/^[\w ,'-]{1,60}$/u),
+      filters: analyticsFiltersSchema,
+      datePreset: z.enum(["custom", "last_7_days", "last_30_days", "last_90_days"]),
+    })
+    .strict(),
+  z.object({ action: z.literal("reopenView"), id: uuid }).strict(),
   z.object({ action: z.literal("dashboardContext") }).strict(),
   z.object({ action: z.literal("products") }).strict(),
   z.object({ action: z.literal("trafficSources") }).strict(),
@@ -102,6 +121,31 @@ export async function POST(request: Request): Promise<NextResponse> {
     const command = parsed.data;
 
     switch (command.action) {
+      case "savedViews":
+        return json(await getSavedViews(accountId, context.user.id));
+      case "saveView":
+        return json(
+          await saveView(
+            accountId,
+            context.user.id,
+            command.name,
+            command.filters,
+            command.datePreset,
+          ),
+        );
+      case "reopenView": {
+        const view = await reopenView(accountId, context.user.id, command.id);
+        if (view === null)
+          return NextResponse.json({ error: "saved view not found" }, { status: 404 });
+        const filters = analyticsFiltersSchema.parse(view.filters);
+        if (view.datePreset !== "custom") {
+          Object.assign(
+            filters,
+            presetDateRange(view.datePreset, resolveDashboardNow(context.fixtureClock, new Date())),
+          );
+        }
+        return json({ ...view, filters });
+      }
       case "dashboardContext":
         return json(context);
       case "products":

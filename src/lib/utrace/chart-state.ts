@@ -73,6 +73,13 @@ export type RenderStatus = "rendered" | "empty";
 
 export type ChartStateEvent =
   | Readonly<{
+      type: "saved_view_created" | "saved_view_reopened";
+      sequence: number;
+      occurredAt: string;
+      viewId: string;
+      viewName: string;
+    }>
+  | Readonly<{
       type: "filters_applied";
       sequence: number;
       occurredAt: string;
@@ -111,6 +118,12 @@ export type ChartStateSnapshot = Readonly<{
 export type ChartStateListener = (event: ChartStateEvent) => void;
 
 export type ChartStateChannel = Readonly<{
+  savedView: (
+    type: "saved_view_created" | "saved_view_reopened",
+    viewId: string,
+    viewName: string,
+    occurredAt: Date,
+  ) => ChartStateEvent;
   protocolVersion: string;
   /** Records the filter values the dashboard applied. */
   applyFilters: (filters: AppliedFilterValues, occurredAt: Date) => ChartStateEvent;
@@ -258,6 +271,12 @@ export function createChartStateChannel(): ChartStateChannel {
 
   return Object.freeze({
     protocolVersion: CHART_STATE_PROTOCOL_VERSION,
+    savedView(type, viewId, viewName, occurredAt) {
+      sequence += 1;
+      return emit(
+        Object.freeze({ type, sequence, viewId, viewName, occurredAt: occurredAt.toISOString() }),
+      );
+    },
     applyFilters,
     displaySeries,
     completeRender,

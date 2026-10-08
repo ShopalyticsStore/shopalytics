@@ -42,6 +42,11 @@ export interface DimensionRow {
   name: string;
 }
 
+export interface SavedConversionView extends DimensionRow {
+  filters: AnalyticsFilters;
+  datePreset: import("@/lib/fixture/clock").DateRangePreset;
+}
+
 export interface ConversionStateRow extends DimensionRow {
   key: string;
   ordinal: number;

@@ -3,10 +3,7 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named filter sets persist for the signed-in user and restore the entire stack.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -15,7 +12,8 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQueries } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import {
@@ -31,6 +29,9 @@ import { ReviewsPanel } from "@/components/dashboard/ReviewsPanel";
 import { TrendChart } from "@/components/dashboard/TrendChart";
 import {
   getConversionTrend,
+  getSavedViews,
+  saveView,
+  reopenView,
   getKpis,
   getProductBreakdown,
   getReviews,
@@ -39,7 +40,6 @@ import {
   type DashboardContext,
   type DimensionRow,
 } from "@/lib/db";
-import { matchDateRangePreset } from "@/lib/fixture/clock";
 import {
   buildSeriesIdentity,
   type AppliedFilterValues,
@@ -90,15 +90,49 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
     createDefaultFilterState(now, defaultConversionStateIds),
   );
 
-  const filters: AnalyticsFilters = filterState;
+  const { datePreset, ...filters }: { datePreset: FilterState["datePreset"] } & AnalyticsFilters =
+    filterState;
+  const [viewName, setViewName] = useState("");
+  const [viewError, setViewError] = useState<string | null>(null);
+  const [viewBusy, setViewBusy] = useState(false);
+  const savedViews = useQuery({
+    queryKey: ["saved-conversion-views", context.account.id, context.user.id],
+    queryFn: getSavedViews,
+  });
+
+  async function saveCurrentView() {
+    setViewBusy(true);
+    setViewError(null);
+    try {
+      const view = await saveView(viewName.trim(), filters, datePreset);
+      channel.savedView("saved_view_created", view.id, view.name, new Date());
+      setViewName("");
+      await savedViews.refetch();
+    } catch (error) {
+      setViewError(error instanceof Error ? error.message : "Could not save filter set");
+    } finally {
+      setViewBusy(false);
+    }
+  }
+
+  async function openSavedView(id: string) {
+    setViewBusy(true);
+    setViewError(null);
+    try {
+      const view = await reopenView(id);
+      setFilterState({ ...view.filters, datePreset: view.datePreset });
+      channel.savedView("saved_view_reopened", view.id, view.name, new Date());
+    } catch (error) {
+      setViewError(error instanceof Error ? error.message : "Could not reopen filter set");
+    } finally {
+      setViewBusy(false);
+    }
+  }
 
   const appliedFilters = useMemo<AppliedFilterValues>(
     () => ({
       dateRange: {
-        preset: matchDateRangePreset(
-          { startDate: filterState.startDate, endDate: filterState.endDate },
-          now,
-        ),
+        preset: filterState.datePreset,
         startDate: filterState.startDate,
         endDate: filterState.endDate,
       },
@@ -115,7 +149,7 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         filterState.conversionStateIds,
       ),
     }),
-    [dimensions, filterState, now],
+    [dimensions, filterState],
   );
 
   const stateKeysById = useMemo(
@@ -228,6 +262,57 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
       />
+
+      <form
+        className="flex flex-wrap items-center gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void saveCurrentView();
+        }}
+      >
+        <label htmlFor="saved-view-name" className="text-sm">
+          Filter set name
+        </label>
+        <input
+          id="saved-view-name"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+          value={viewName}
+          onChange={(event) => setViewName(event.target.value)}
+          maxLength={60}
+          pattern="[A-Za-z0-9_ ,'-]{1,60}"
+          required
+          data-testid="saved-view-name"
+          data-utrace-target="saved_view_name_field"
+          data-utrace-safe-value="safe.view_name"
+        />
+        <Button
+          type="submit"
+          disabled={viewBusy || !/^[\w ,'-]{1,60}$/u.test(viewName.trim())}
+          data-testid="saved-view-save"
+          data-utrace-target="saved_view_save_control"
+          data-utrace-safe-value="safe.control_label"
+        >
+          Save filter set
+        </Button>
+        {savedViews.data?.map((view) => (
+          <Button
+            key={view.id}
+            type="button"
+            variant="outline"
+            disabled={viewBusy}
+            onClick={() => void openSavedView(view.id)}
+            data-testid="saved-view-reopen"
+            data-utrace-target="saved_view_reopen_control"
+          >
+            {view.name}
+          </Button>
+        ))}
+      </form>
+      {(viewError || savedViews.error) && (
+        <div role="alert" className="text-sm text-critical">
+          {viewError ?? savedViews.error?.message}
+        </div>
+      )}
 
       {failure !== undefined && (
         <div

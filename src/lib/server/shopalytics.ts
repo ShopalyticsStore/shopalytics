@@ -11,9 +11,11 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
 
 import type {
   AnalyticsFilters,
+  SavedConversionView,
   ConversionStateRow,
   DashboardContext,
   DimensionRow,
@@ -28,6 +30,43 @@ import type {
 } from "@/lib/db/types";
 import { FIXTURE_CLOCK_ENV_NAME, resolveFixtureClock } from "@/lib/fixture/clock";
 import { queryRows } from "./db";
+
+export function getSavedViews(accountId: string, userId: string): Promise<SavedConversionView[]> {
+  return queryRows<SavedConversionView & QueryResultRow>(
+    `SELECT id, name, filters, date_preset AS "datePreset" FROM saved_conversion_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid ORDER BY created_at, id`,
+    [accountId, userId],
+  );
+}
+
+export async function saveView(
+  accountId: string,
+  userId: string,
+  name: string,
+  filters: AnalyticsFilters,
+  datePreset: SavedConversionView["datePreset"],
+): Promise<SavedConversionView> {
+  const rows = await queryRows<SavedConversionView & QueryResultRow>(
+    `INSERT INTO saved_conversion_views (id, account_id, user_id, name, filters, date_preset)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::jsonb, $6)
+     RETURNING id, name, filters, date_preset AS "datePreset"`,
+    [randomUUID(), accountId, userId, name, JSON.stringify(filters), datePreset],
+  );
+  return rows[0]!;
+}
+
+export async function reopenView(
+  accountId: string,
+  userId: string,
+  id: string,
+): Promise<SavedConversionView | null> {
+  const rows = await queryRows<SavedConversionView & QueryResultRow>(
+    `SELECT id, name, filters, date_preset AS "datePreset" FROM saved_conversion_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid AND id = $3::uuid`,
+    [accountId, userId, id],
+  );
+  return rows[0] ?? null;
+}
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
 
