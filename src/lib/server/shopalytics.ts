@@ -11,6 +11,8 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
+import type { SavedView, SavedViewFilters } from "@/lib/db/saved-views";
 
 import type {
   AnalyticsFilters,
@@ -30,6 +32,29 @@ import { FIXTURE_CLOCK_ENV_NAME, resolveFixtureClock } from "@/lib/fixture/clock
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
+
+export function getSavedViews(accountId: string, userId: string): Promise<SavedView[]> {
+  return queryRows<SavedView & QueryResultRow>(
+    `SELECT id, name, filters FROM saved_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid ORDER BY created_at, id`,
+    [accountId, userId],
+  );
+}
+
+export async function saveView(
+  accountId: string,
+  userId: string,
+  name: string,
+  filters: SavedViewFilters,
+): Promise<SavedView> {
+  const rows = await queryRows<SavedView & QueryResultRow>(
+    `INSERT INTO saved_views (id, account_id, user_id, name, filters)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::text, $5::jsonb)
+     RETURNING id, name, filters`,
+    [randomUUID(), accountId, userId, name, JSON.stringify(filters)],
+  );
+  return rows[0]!;
+}
 
 type CountedRow = QueryResultRow & {
   sessions: string | number;

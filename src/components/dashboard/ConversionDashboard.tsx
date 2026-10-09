@@ -3,10 +3,7 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named views persist the complete stack, including relative date definitions.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -15,7 +12,17 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQueries } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { captureView, restoreView } from "@/lib/db/saved-views";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import {
@@ -34,18 +41,19 @@ import {
   getKpis,
   getProductBreakdown,
   getReviews,
-  type AnalyticsFilters,
+  getSavedViews,
+  saveView,
   type ConversionStateRow,
   type DashboardContext,
   type DimensionRow,
 } from "@/lib/db";
-import { matchDateRangePreset } from "@/lib/fixture/clock";
+import { resolveDashboardNow } from "@/lib/fixture/clock";
 import {
   buildSeriesIdentity,
   type AppliedFilterValues,
   type SelectedDimension,
 } from "@/lib/utrace/chart-state";
-import { UTraceChartStateReporter } from "@/lib/utrace/chart-state-reporter";
+import { reportSavedView, UTraceChartStateReporter } from "@/lib/utrace/chart-state-reporter";
 import { useChartStateChannel } from "@/lib/utrace/use-chart-state";
 
 export type ConversionDimensions = Readonly<{
@@ -90,15 +98,24 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
     createDefaultFilterState(now, defaultConversionStateIds),
   );
 
-  const filters: AnalyticsFilters = filterState;
+  const { datePreset, ...filters }: FilterState = filterState;
+  const [viewName, setViewName] = useState("");
+  const queryClient = useQueryClient();
+  const viewsKey = ["saved-views", context.account.id, context.user.id];
+  const viewsQuery = useQuery({ queryKey: viewsKey, queryFn: getSavedViews });
+  const saveMutation = useMutation({
+    mutationFn: () => saveView(viewName.trim(), captureView(filters, datePreset)),
+    onSuccess: (view) => {
+      reportSavedView("saved_view_created", view.name);
+      setViewName("");
+      void queryClient.invalidateQueries({ queryKey: viewsKey });
+    },
+  });
 
   const appliedFilters = useMemo<AppliedFilterValues>(
     () => ({
       dateRange: {
-        preset: matchDateRangePreset(
-          { startDate: filterState.startDate, endDate: filterState.endDate },
-          now,
-        ),
+        preset: filterState.datePreset,
         startDate: filterState.startDate,
         endDate: filterState.endDate,
       },
@@ -115,7 +132,7 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         filterState.conversionStateIds,
       ),
     }),
-    [dimensions, filterState, now],
+    [dimensions, filterState],
   );
 
   const stateKeysById = useMemo(
@@ -199,9 +216,14 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
     );
   }, [channel, reviews, reviewsQuery.data]);
 
-  const failure = [kpisQuery.error, trendQuery.error, productsQuery.error, reviewsQuery.error].find(
-    (error): error is Error => error instanceof Error,
-  );
+  const failure = [
+    kpisQuery.error,
+    trendQuery.error,
+    productsQuery.error,
+    reviewsQuery.error,
+    viewsQuery.error,
+    saveMutation.error,
+  ].find((error): error is Error => error instanceof Error);
 
   return (
     <div
@@ -228,6 +250,51 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
       />
+
+      <form
+        className="flex flex-wrap items-center gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (viewName.trim() && !saveMutation.isPending) saveMutation.mutate();
+        }}
+      >
+        <Label htmlFor="saved-view-name">View name</Label>
+        <Input
+          id="saved-view-name"
+          className="w-64"
+          value={viewName}
+          onChange={(event) => setViewName(event.target.value)}
+          maxLength={60}
+          data-utrace-target="saved_view_name_field"
+          data-utrace-safe-value="safe.view_name"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          disabled={!viewName.trim() || saveMutation.isPending}
+          data-utrace-target="saved_view_save_control"
+        >
+          {saveMutation.isPending ? "Saving…" : "Save view"}
+        </Button>
+        {viewsQuery.data?.map((view) => (
+          <Button
+            key={view.id}
+            type="button"
+            variant="outline"
+            size="sm"
+            data-utrace-target="saved_view_reopen_control"
+            onClick={() => {
+              setFilterState({
+                ...restoreView(view.filters, resolveDashboardNow(context.fixtureClock, new Date())),
+                datePreset: view.filters.dateRange.preset,
+              });
+              reportSavedView("saved_view_reopened", view.name);
+            }}
+          >
+            {view.name}
+          </Button>
+        ))}
+      </form>
 
       {failure !== undefined && (
         <div

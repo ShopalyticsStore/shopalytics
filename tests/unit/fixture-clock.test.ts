@@ -1,4 +1,10 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+import { captureView, restoreView, savedViewFiltersSchema } from "@/lib/db/saved-views";
+import type { AnalyticsFilters } from "@/lib/db/types";
+import { getSavedViews, saveView } from "@/lib/server/shopalytics";
+import { queryRows } from "@/lib/server/db";
+
+vi.mock("@/lib/server/db", () => ({ queryRows: vi.fn() }));
 
 import {
   matchDateRangePreset,
@@ -91,5 +97,72 @@ describe("the fixture clock", () => {
 
     expect(toUtcDateString(shiftUtcDays(now, -1))).toBe("2026-09-13");
     expect(toUtcDateString(shiftUtcDays(now, 1))).toBe("2026-09-15");
+  });
+});
+
+describe("saved conversion views", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const filters: AnalyticsFilters = {
+    productIds: [id],
+    trafficSourceIds: [id],
+    demographicSegmentIds: [id],
+    sentiments: ["negative", "neutral"],
+    reviewTopicIds: [id],
+    conversionStateIds: [id],
+    ...presetDateRange("last_30_days", new Date(FIXTURE_CLOCK)),
+  };
+
+  test("restores every filter after a JSON persistence round trip", () => {
+    const saved = savedViewFiltersSchema.parse(
+      JSON.parse(JSON.stringify(captureView(filters, "custom"))),
+    );
+    expect(restoreView(saved, new Date("2030-01-01T00:00:00Z"))).toEqual(filters);
+    expect(Object.keys(restoreView(saved, new Date())).sort()).toEqual(Object.keys(filters).sort());
+  });
+
+  test.each(["last_7_days", "last_30_days", "last_90_days"] as const)(
+    "keeps %s relative when reopened later",
+    (preset) => {
+      const saved = savedViewFiltersSchema.parse(
+        JSON.parse(JSON.stringify(captureView(filters, preset))),
+      );
+      expect(saved.dateRange).toEqual({ preset });
+      const later = new Date("2030-01-01T00:00:00Z");
+      expect(restoreView(saved, later)).toEqual({ ...filters, ...presetDateRange(preset, later) });
+    },
+  );
+
+  test("rejects owner identifiers and unknown filter fields", () => {
+    expect(
+      savedViewFiltersSchema.safeParse({ ...captureView(filters, "custom"), accountId: id })
+        .success,
+    ).toBe(false);
+  });
+
+  test("persists the complete view and scopes retrieval to both server owner identifiers", async () => {
+    const saved = captureView(filters, "last_30_days");
+    const view = { id, name: "Weekly conversion", filters: saved };
+    const query = vi.mocked(queryRows);
+    query.mockResolvedValueOnce([view]);
+    expect(await saveView("account", "user", view.name, saved)).toEqual(view);
+    expect(query).toHaveBeenLastCalledWith(expect.stringContaining("INSERT INTO saved_views"), [
+      expect.any(String),
+      "account",
+      "user",
+      view.name,
+      JSON.stringify(saved),
+    ]);
+    query.mockResolvedValueOnce([view]);
+    expect(await getSavedViews("account", "user")).toEqual([view]);
+    expect(query).toHaveBeenLastCalledWith(
+      expect.stringContaining("WHERE account_id = $1::uuid AND user_id = $2::uuid"),
+      ["account", "user"],
+    );
+    query.mockResolvedValueOnce([]);
+    expect(await getSavedViews("account", "other-user")).toEqual([]);
+    expect(query).toHaveBeenLastCalledWith(expect.any(String), ["account", "other-user"]);
+    query.mockResolvedValueOnce([]);
+    expect(await getSavedViews("other-account", "user")).toEqual([]);
+    expect(query).toHaveBeenLastCalledWith(expect.any(String), ["other-account", "user"]);
   });
 });

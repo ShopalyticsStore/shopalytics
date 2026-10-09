@@ -124,7 +124,16 @@ function LoadedReviews({
     createDefaultFilterState(now, defaultConversionStateIds),
   );
 
-  const filters: AnalyticsFilters = filterState;
+  const filters: AnalyticsFilters = {
+    productIds: filterState.productIds,
+    trafficSourceIds: filterState.trafficSourceIds,
+    demographicSegmentIds: filterState.demographicSegmentIds,
+    sentiments: filterState.sentiments,
+    reviewTopicIds: filterState.reviewTopicIds,
+    conversionStateIds: filterState.conversionStateIds,
+    startDate: filterState.startDate,
+    endDate: filterState.endDate,
+  };
 
   const reviewsQuery = useQueries({
     queries: [
