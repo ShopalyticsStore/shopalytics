@@ -23,6 +23,13 @@
 
 export type Sentiment = "positive" | "neutral" | "negative";
 
+export interface SavedView {
+  id: string;
+  name: string;
+  filters: AnalyticsFilters;
+  datePreset: import("@/lib/fixture/clock").DateRangePreset;
+}
+
 /** A filter stack; the account it reads is always the signed-in user's own. */
 export interface AnalyticsFilters {
   productIds: string[];

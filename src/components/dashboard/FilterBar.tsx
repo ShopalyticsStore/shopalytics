@@ -2,9 +2,7 @@
  * The conversion filter stack: date range, channel, demographic segment,
  * review topic, sentiment, conversion state and product.
  *
- * The stack lives in React state and nothing persists it. Leaving or reloading
- * the dashboard loses it, which is the workflow problem the uTrace demo is
- * about; do not add local storage, a URL parameter or a saved view here.
+ * The dashboard owns the stack and can persist it as a named view.
  *
  * "Now" comes from the fixture clock so `Last 30 days` selects the same rows on
  * every run.
@@ -20,7 +18,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { MultiSelectFilter } from "./MultiSelectFilter";
 import {
   DATE_RANGE_PRESET_LABELS,
-  matchDateRangePreset,
   presetDateRange,
   toUtcDateString,
   type DateRangePreset,
@@ -28,6 +25,7 @@ import {
 import type { DimensionRow, Sentiment } from "@/lib/db";
 
 export interface FilterState {
+  datePreset: DateRangePreset;
   productIds: string[];
   trafficSourceIds: string[];
   demographicSegmentIds: string[];
@@ -78,6 +76,7 @@ export function createDefaultFilterState(
 ): FilterState {
   const range = presetDateRange("last_30_days", now);
   return {
+    datePreset: "last_30_days",
     productIds: [],
     trafficSourceIds: [],
     demographicSegmentIds: [],
@@ -115,10 +114,7 @@ export function FilterBar({
   const [dateOpen, setDateOpen] = useState(false);
   const start = parseISO(state.startDate);
   const end = parseISO(state.endDate);
-  const activePreset = matchDateRangePreset(
-    { startDate: state.startDate, endDate: state.endDate },
-    now,
-  );
+  const activePreset = state.datePreset;
 
   return (
     <div
@@ -141,7 +137,7 @@ export function FilterBar({
               data-utrace-safe-value="safe.control_label"
               onClick={() => {
                 const range = presetDateRange(preset, now);
-                setState({ ...state, startDate: range.startDate, endDate: range.endDate });
+                setState({ ...state, ...range, datePreset: preset });
               }}
             >
               {DATE_RANGE_PRESET_LABELS[preset]}
@@ -176,6 +172,7 @@ export function FilterBar({
                 if (range?.from && range?.to) {
                   setState({
                     ...state,
+                    datePreset: "custom",
                     startDate: toUtcDateString(range.from),
                     endDate: toUtcDateString(range.to),
                   });
