@@ -3,10 +3,7 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named views persist the complete stack and retain relative date intent.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -29,6 +26,7 @@ import { KpiCards } from "@/components/dashboard/KpiCards";
 import { ProductTable } from "@/components/dashboard/ProductTable";
 import { ReviewsPanel } from "@/components/dashboard/ReviewsPanel";
 import { TrendChart } from "@/components/dashboard/TrendChart";
+import { SavedViews } from "@/components/dashboard/SavedViews";
 import {
   getConversionTrend,
   getKpis,
@@ -90,15 +88,17 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
     createDefaultFilterState(now, defaultConversionStateIds),
   );
 
-  const filters: AnalyticsFilters = filterState;
+  const { datePreset, ...filters }: FilterState = filterState;
 
   const appliedFilters = useMemo<AppliedFilterValues>(
     () => ({
       dateRange: {
-        preset: matchDateRangePreset(
-          { startDate: filterState.startDate, endDate: filterState.endDate },
-          now,
-        ),
+        preset:
+          datePreset ??
+          matchDateRangePreset(
+            { startDate: filterState.startDate, endDate: filterState.endDate },
+            now,
+          ),
         startDate: filterState.startDate,
         endDate: filterState.endDate,
       },
@@ -115,7 +115,7 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         filterState.conversionStateIds,
       ),
     }),
-    [dimensions, filterState, now],
+    [dimensions, filterState, now, datePreset],
   );
 
   const stateKeysById = useMemo(
@@ -227,6 +227,13 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         conversionStates={dimensions.conversionStates}
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
+      />
+
+      <SavedViews
+        filters={filters as AnalyticsFilters}
+        datePreset={datePreset ?? matchDateRangePreset(filters, now)}
+        context={context}
+        onReopen={setFilterState}
       />
 
       {failure !== undefined && (

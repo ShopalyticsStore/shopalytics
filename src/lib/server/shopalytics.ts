@@ -11,6 +11,8 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
+import type { SavedView } from "@/lib/db/types";
 
 import type {
   AnalyticsFilters,
@@ -30,6 +32,46 @@ import { FIXTURE_CLOCK_ENV_NAME, resolveFixtureClock } from "@/lib/fixture/clock
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
+
+// Also supports workspaces provisioned before saved views were introduced.
+async function ensureSavedViews(): Promise<void> {
+  await queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_views (
+    id uuid PRIMARY KEY,
+    account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name text NOT NULL, filters jsonb NOT NULL, date_preset text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+    [],
+  );
+}
+
+export async function getSavedViews(accountId: string, userId: string): Promise<SavedView[]> {
+  await ensureSavedViews();
+  return queryRows<SavedView & QueryResultRow>(
+    `SELECT id, name, filters, date_preset AS "datePreset" FROM saved_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid ORDER BY created_at, id`,
+    [accountId, userId],
+  );
+}
+
+export async function saveView(
+  accountId: string,
+  userId: string,
+  name: string,
+  filters: AnalyticsFilters,
+  datePreset: SavedView["datePreset"],
+): Promise<SavedView> {
+  await ensureSavedViews();
+  const id = randomUUID();
+  await queryRows(
+    `INSERT INTO saved_views (id, account_id, user_id, name, filters, date_preset)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::jsonb, $6)`,
+    [id, accountId, userId, name, JSON.stringify(filters), datePreset],
+  );
+  return { id, name, filters, datePreset };
+}
 
 type CountedRow = QueryResultRow & {
   sessions: string | number;
