@@ -22,12 +22,54 @@ import type {
   ProductRow,
   ProductSentiment,
   ReviewRow,
+  SavedView,
   SegmentRow,
   Sentiment,
   TrendPoint,
 } from "@/lib/db/types";
 import { FIXTURE_CLOCK_ENV_NAME, resolveFixtureClock } from "@/lib/fixture/clock";
 import { queryRows } from "./db";
+
+// Existing installations acquire the additive table on first use as well.
+async function ensureSavedViews(): Promise<void> {
+  await queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_conversion_views (
+    id uuid PRIMARY KEY,
+    account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    filters jsonb NOT NULL,
+    date_preset text NOT NULL
+  )`,
+    [],
+  );
+}
+
+export async function getSavedViews(accountId: string, userId: string): Promise<SavedView[]> {
+  await ensureSavedViews();
+  return queryRows<SavedView & QueryResultRow>(
+    `SELECT id, name, filters, date_preset AS "datePreset" FROM saved_conversion_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid ORDER BY name, id`,
+    [accountId, userId],
+  );
+}
+
+export async function saveView(
+  accountId: string,
+  userId: string,
+  name: string,
+  filters: AnalyticsFilters,
+  datePreset: SavedView["datePreset"],
+): Promise<SavedView> {
+  await ensureSavedViews();
+  const rows = await queryRows<SavedView & QueryResultRow>(
+    `INSERT INTO saved_conversion_views (id, account_id, user_id, name, filters, date_preset)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::jsonb, $6)
+     RETURNING id, name, filters, date_preset AS "datePreset"`,
+    [crypto.randomUUID(), accountId, userId, name, JSON.stringify(filters), datePreset],
+  );
+  return rows[0]!;
+}
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
 
