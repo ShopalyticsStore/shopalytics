@@ -3,10 +3,7 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named personal views persist the complete filter stack and date preset.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -18,6 +15,11 @@ import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQueries } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/app/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { getSavedViews, saveView, reopenView } from "@/lib/db/queries";
+import type { SavedView } from "@/lib/db/saved-views";
 import {
   FilterBar,
   activeFilterCount,
@@ -45,7 +47,7 @@ import {
   type AppliedFilterValues,
   type SelectedDimension,
 } from "@/lib/utrace/chart-state";
-import { UTraceChartStateReporter } from "@/lib/utrace/chart-state-reporter";
+import { UTraceChartStateReporter, reportSavedView } from "@/lib/utrace/chart-state-reporter";
 import { useChartStateChannel } from "@/lib/utrace/use-chart-state";
 
 export type ConversionDimensions = Readonly<{
@@ -91,6 +93,49 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
   );
 
   const filters: AnalyticsFilters = filterState;
+  const [views, setViews] = useState<SavedView[]>([]);
+  const [viewName, setViewName] = useState("");
+  const [viewError, setViewError] = useState<string | null>(null);
+  const [viewBusy, setViewBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getSavedViews()
+      .then((saved) => {
+        if (active) setViews(saved);
+      })
+      .catch((error: Error) => {
+        if (active) setViewError(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function manageView(id?: string) {
+    setViewBusy(true);
+    setViewError(null);
+    try {
+      if (id !== undefined) {
+        const view = await reopenView(id);
+        setFilterState(view.filters);
+        reportSavedView("saved_view_reopened", view.name);
+      } else {
+        const view = await saveView({
+          name: viewName.trim(),
+          filters,
+          datePreset: matchDateRangePreset(filters, now),
+        });
+        setViews((current) => [...current, view]);
+        setViewName("");
+        reportSavedView("saved_view_created", view.name);
+      }
+    } catch (error) {
+      setViewError(error instanceof Error ? error.message : "Saved view request failed");
+    } finally {
+      setViewBusy(false);
+    }
+  }
 
   const appliedFilters = useMemo<AppliedFilterValues>(
     () => ({
@@ -227,7 +272,46 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         conversionStates={dimensions.conversionStates}
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
+        savedViewControls={
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <Label htmlFor="saved-view-name">View name</Label>
+            <Input
+              id="saved-view-name"
+              className="w-60"
+              value={viewName}
+              maxLength={60}
+              data-utrace-target="saved_view_name_field"
+              data-utrace-safe-value="safe.view_name"
+              onChange={(event) => setViewName(event.target.value)}
+            />
+            <Button
+              size="sm"
+              disabled={viewBusy || !viewName.trim()}
+              data-utrace-target="saved_view_save_control"
+              onClick={() => void manageView()}
+            >
+              Save view
+            </Button>
+            {views.map((view) => (
+              <Button
+                key={view.id}
+                size="sm"
+                variant="outline"
+                disabled={viewBusy}
+                data-utrace-target="saved_view_reopen_control"
+                onClick={() => void manageView(view.id)}
+              >
+                {view.name}
+              </Button>
+            ))}
+          </div>
+        }
       />
+      {viewError !== null && (
+        <p role="alert" className="text-sm text-critical">
+          {viewError}
+        </p>
+      )}
 
       {failure !== undefined && (
         <div
