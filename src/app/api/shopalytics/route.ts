@@ -9,10 +9,14 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { datePresetSchema, resolveSavedView, viewNameSchema } from "@/lib/db/saved-views";
+import { resolveDashboardNow } from "@/lib/fixture/clock";
 
 import { UnauthenticatedPreviewError, resolveRequestIdentity } from "@/lib/server/request-identity";
 import {
   getConversionStates,
+  getSavedViews,
+  saveView,
   getConversionTrend,
   getDashboardContext,
   getDemographicSegments,
@@ -45,6 +49,16 @@ const analyticsFiltersSchema = z
   .strict();
 
 const requestSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("savedViews") }).strict(),
+  z
+    .object({
+      action: z.literal("saveView"),
+      name: viewNameSchema,
+      filters: analyticsFiltersSchema,
+      datePreset: datePresetSchema,
+    })
+    .strict(),
+  z.object({ action: z.literal("reopenView"), id: uuid }).strict(),
   z.object({ action: z.literal("dashboardContext") }).strict(),
   z.object({ action: z.literal("products") }).strict(),
   z.object({ action: z.literal("trafficSources") }).strict(),
@@ -102,6 +116,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     const command = parsed.data;
 
     switch (command.action) {
+      case "savedViews":
+        return json(await getSavedViews(accountId, context.user.id));
+      case "saveView":
+        return json(await saveView(accountId, context.user.id, command));
+      case "reopenView": {
+        const views = await getSavedViews(accountId, context.user.id);
+        const view = views.find((entry) => entry.id === command.id);
+        if (!view) return NextResponse.json({ error: "Saved view not found" }, { status: 404 });
+        return json({
+          ...view,
+          filters: resolveSavedView(view, resolveDashboardNow(context.fixtureClock, new Date())),
+        });
+      }
       case "dashboardContext":
         return json(context);
       case "products":

@@ -16,8 +16,12 @@ import type {
   SegmentRow,
   TrendPoint,
 } from "./types";
+import type { SavedView } from "./saved-views";
 
 type ApiBody =
+  | { action: "savedViews" }
+  | ({ action: "saveView" } & Omit<SavedView, "id">)
+  | { action: "reopenView"; id: string }
   | { action: "dashboardContext" }
   | { action: "products" }
   | { action: "trafficSources" }
@@ -51,6 +55,18 @@ async function shopalyticsApi<T>(body: ApiBody): Promise<T> {
 
 export function getDashboardContext(): Promise<DashboardContext> {
   return shopalyticsApi({ action: "dashboardContext" });
+}
+
+export function getSavedViews(): Promise<SavedView[]> {
+  return shopalyticsApi({ action: "savedViews" });
+}
+
+export function saveView(view: Omit<SavedView, "id">): Promise<SavedView> {
+  return shopalyticsApi({ action: "saveView", ...view });
+}
+
+export function reopenView(id: string): Promise<SavedView> {
+  return shopalyticsApi({ action: "reopenView", id });
 }
 
 export function getProducts(): Promise<DimensionRow[]> {
