@@ -35,7 +35,7 @@ export function NavUser() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Avatar className="size-7 cursor-pointer rounded-lg" data-testid="nav-user">
-            <Image src={dudulemonLogo} alt="Dudulemon" className="size-full" />
+            <Image src={dudulemonLogo} alt="Dudulemon" unoptimized className="size-full" />
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
