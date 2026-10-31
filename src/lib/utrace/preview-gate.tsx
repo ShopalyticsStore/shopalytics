@@ -23,6 +23,9 @@
  */
 
 import { UTraceGate } from "@utrace/browser-sdk/next";
+import { LoaderCircle } from "lucide-react";
+
+import { Logo } from "@/components/Logo";
 
 import type { UTraceProfile } from "./profile";
 
@@ -56,13 +59,19 @@ export function UTracePreviewGate(props: UTracePreviewGateProps): React.ReactEle
   );
 }
 
+/** Shown for the few seconds activation takes, so the wait reads as loading rather than a fault. */
 function PreviewPreparing(): React.ReactElement {
   return (
     <div
+      role="status"
       data-testid="utrace-preview-preparing"
-      className="flex min-h-screen items-center justify-center p-8 text-sm text-muted-foreground"
+      className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-sm text-muted-foreground"
     >
-      Preparing this Shopalytics preview.
+      <Logo className="size-12" />
+      <span className="flex items-center gap-2">
+        <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+        Preparing your Shopalytics preview…
+      </span>
     </div>
   );
 }

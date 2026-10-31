@@ -2,11 +2,13 @@
 
 /**
  * The signed-in Dudulemon user, read from the dashboard context. The bar shows
- * the workspace beside the avatar; the person is named inside the menu.
+ * the workspace's mark and name; the person is named inside the menu.
  */
 
 import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
 
+import dudulemonLogo from "@/assets/brand/dudulemon-logo.webp";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -33,9 +35,7 @@ export function NavUser() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Avatar className="size-7 cursor-pointer rounded-lg" data-testid="nav-user">
-            <AvatarFallback className="rounded-lg bg-brand text-xs font-semibold text-topbar">
-              {name.charAt(0)}
-            </AvatarFallback>
+            <Image src={dudulemonLogo} alt="Dudulemon" className="size-full" />
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
