@@ -2,15 +2,14 @@
  * The conversion filter stack: date range, channel, demographic segment,
  * review topic, sentiment, conversion state and product.
  *
- * The stack lives in React state and nothing persists it. Leaving or reloading
- * the dashboard loses it, which is the workflow problem the uTrace demo is
- * about; do not add local storage, a URL parameter or a saved view here.
+ * The stack lives in dashboard React state; named views restore that same
+ * state so every control and query reflects the reopened view.
  *
  * "Now" comes from the fixture clock so `Last 30 days` selects the same rows on
  * every run.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { parseISO } from "date-fns";
 
@@ -28,6 +27,7 @@ import {
 import type { DimensionRow, Sentiment } from "@/lib/db";
 
 export interface FilterState {
+  datePreset?: DateRangePreset;
   productIds: string[];
   trafficSourceIds: string[];
   demographicSegmentIds: string[];
@@ -49,6 +49,7 @@ interface Props {
   conversionStates: DimensionRow[];
   onReset: () => void;
   activeCount: number;
+  savedViews?: ReactNode;
 }
 
 const SENTIMENT_OPTIONS: readonly { id: Sentiment; name: string }[] = [
@@ -78,6 +79,7 @@ export function createDefaultFilterState(
 ): FilterState {
   const range = presetDateRange("last_30_days", now);
   return {
+    datePreset: "last_30_days",
     productIds: [],
     trafficSourceIds: [],
     demographicSegmentIds: [],
@@ -111,14 +113,14 @@ export function FilterBar({
   conversionStates,
   onReset,
   activeCount,
+  savedViews,
 }: Props) {
   const [dateOpen, setDateOpen] = useState(false);
   const start = parseISO(state.startDate);
   const end = parseISO(state.endDate);
-  const activePreset = matchDateRangePreset(
-    { startDate: state.startDate, endDate: state.endDate },
-    now,
-  );
+  const activePreset =
+    state.datePreset ??
+    matchDateRangePreset({ startDate: state.startDate, endDate: state.endDate }, now);
 
   return (
     <div
@@ -126,8 +128,8 @@ export function FilterBar({
       data-testid="conversion-filter-bar"
       data-utrace-visual-target="conversion_filter_bar"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg bg-card shadow-button">
+      <div className="flex w-full items-center gap-2 overflow-x-auto">
+        <div className="inline-flex shrink-0 rounded-lg bg-card shadow-button">
           {SELECTABLE_PRESETS.map((preset) => (
             <Button
               key={preset}
@@ -141,7 +143,12 @@ export function FilterBar({
               data-utrace-safe-value="safe.control_label"
               onClick={() => {
                 const range = presetDateRange(preset, now);
-                setState({ ...state, startDate: range.startDate, endDate: range.endDate });
+                setState({
+                  ...state,
+                  datePreset: preset,
+                  startDate: range.startDate,
+                  endDate: range.endDate,
+                });
               }}
             >
               {DATE_RANGE_PRESET_LABELS[preset]}
@@ -153,7 +160,7 @@ export function FilterBar({
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 px-2.5 text-sm data-[active=true]:bg-secondary data-[active=true]:shadow-button-pressed"
+              className="shrink-0 gap-1.5 px-2.5 text-sm data-[active=true]:bg-secondary data-[active=true]:shadow-button-pressed"
               data-active={activePreset === "custom"}
               data-testid="date-preset-custom"
               data-utrace-target="conversion_filter_date_range"
@@ -176,6 +183,7 @@ export function FilterBar({
                 if (range?.from && range?.to) {
                   setState({
                     ...state,
+                    datePreset: "custom",
                     startDate: toUtcDateString(range.from),
                     endDate: toUtcDateString(range.to),
                   });
@@ -184,6 +192,7 @@ export function FilterBar({
             />
           </PopoverContent>
         </Popover>
+        {savedViews}
       </div>
 
       <div className="flex w-full flex-wrap items-center gap-2">
