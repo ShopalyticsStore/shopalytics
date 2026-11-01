@@ -1,4 +1,7 @@
 import { describe, expect, test } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { FilterBar, createDefaultFilterState } from "@/components/dashboard/FilterBar";
 
 import {
   matchDateRangePreset,
@@ -12,6 +15,51 @@ import {
 import { FIXTURE_CLOCK } from "@/lib/fixture/definition";
 
 describe("the fixture clock", () => {
+  test("saved relative dates advance while preserving the complete filter stack", () => {
+    const original = createDefaultFilterState(new Date(FIXTURE_CLOCK), ["purchased"]);
+    const saved = {
+      ...original,
+      trafficSourceIds: ["channel"],
+      demographicSegmentIds: ["segment"],
+      reviewTopicIds: ["topic"],
+      productIds: ["product"],
+      sentiments: ["negative"],
+    };
+    const preset = matchDateRangePreset(saved, new Date(FIXTURE_CLOCK));
+    expect(preset).toBe("last_30_days");
+    const restored = {
+      ...saved,
+      ...presetDateRange(preset as "last_30_days", new Date("2026-10-14T09:00:00Z")),
+    };
+    expect(restored).toEqual({ ...saved, startDate: "2026-09-15", endDate: "2026-10-14" });
+  });
+
+  test("saved-view controls follow the dates inside the same non-wrapping row", () => {
+    const now = new Date(FIXTURE_CLOCK);
+    const markup = renderToStaticMarkup(
+      createElement(FilterBar, {
+        state: createDefaultFilterState(now, []),
+        setState: () => undefined,
+        now,
+        products: [],
+        trafficSources: [],
+        segments: [],
+        reviewTopics: [],
+        conversionStates: [],
+        onReset: () => undefined,
+        activeCount: 0,
+        savedViewControls: createElement("span", null, "Saved controls"),
+      }),
+    );
+    expect(markup).toMatch(
+      /class="flex w-full items-center gap-2 overflow-x-auto" data-testid="date-filter-row"/u,
+    );
+    expect(markup).toMatch(
+      /class="ml-auto flex shrink-0 items-center gap-2" data-testid="saved-view-controls"><span>Saved controls<\/span><\/div><\/div>/u,
+    );
+    expect(markup.indexOf("date-preset-custom")).toBeLessThan(markup.indexOf("Saved controls"));
+  });
+
   test("accepts RFC 3339 instants with an offset", () => {
     expect(parseFixtureClock("2026-09-14T09:00:00Z").toISOString()).toBe(
       "2026-09-14T09:00:00.000Z",
