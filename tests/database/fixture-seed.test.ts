@@ -122,6 +122,38 @@ afterAll(async () => {
 });
 
 describe("the seeded Dudulemon fixture", () => {
+  test("saved views persist the complete stack and isolate account and user ownership", async () => {
+    const context = await shopalytics.getDashboardContext(
+      "production_profile",
+      "maya@dudulemon.example.com",
+    );
+    const products = await shopalytics.getProducts(accountId);
+    const stack = filters({
+      productIds: [products[0]!.id],
+      trafficSourceIds: [dimensions.tiktok],
+      demographicSegmentIds: [dimensions.women2534],
+      reviewTopicIds: [dimensions.sizing],
+      sentiments: ["negative"],
+      conversionStateIds: [dimensions.cartDropOff],
+    });
+    const saved = await shopalytics.saveView(
+      accountId,
+      context.user.id,
+      "Negative sizing",
+      stack,
+      "last_30_days",
+    );
+    expect(await shopalytics.getSavedViews(accountId, context.user.id)).toContainEqual(saved);
+    const otherId = "00000000-0000-4000-8000-000000000001";
+    expect(await shopalytics.getSavedViews(accountId, otherId)).toEqual([]);
+    expect(await shopalytics.getSavedViews(otherId, context.user.id)).toEqual([]);
+    const stored = await client.query<{ filters: AnalyticsFilters; date_range_preset: string }>(
+      `SELECT filters, date_range_preset FROM "${TEST_SCHEMA}".saved_conversion_views WHERE id = $1`,
+      [saved.id],
+    );
+    expect(stored.rows[0]).toEqual({ filters: stack, date_range_preset: "last_30_days" });
+  });
+
   test("records the manifest identity it installed", async () => {
     const expected = buildManifest(generateDudulemonDataset());
     const rows = await client.query<{

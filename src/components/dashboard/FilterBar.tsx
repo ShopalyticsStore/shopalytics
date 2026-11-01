@@ -2,15 +2,13 @@
  * The conversion filter stack: date range, channel, demographic segment,
  * review topic, sentiment, conversion state and product.
  *
- * The stack lives in React state and nothing persists it. Leaving or reloading
- * the dashboard loses it, which is the workflow problem the uTrace demo is
- * about; do not add local storage, a URL parameter or a saved view here.
+ * The dashboard owns the React state and persists named copies for reopening.
  *
  * "Now" comes from the fixture clock so `Last 30 days` selects the same rows on
  * every run.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { parseISO } from "date-fns";
 
@@ -49,6 +47,7 @@ interface Props {
   conversionStates: DimensionRow[];
   onReset: () => void;
   activeCount: number;
+  savedViewControls?: ReactNode;
 }
 
 const SENTIMENT_OPTIONS: readonly { id: Sentiment; name: string }[] = [
@@ -111,6 +110,7 @@ export function FilterBar({
   conversionStates,
   onReset,
   activeCount,
+  savedViewControls,
 }: Props) {
   const [dateOpen, setDateOpen] = useState(false);
   const start = parseISO(state.startDate);
@@ -126,64 +126,69 @@ export function FilterBar({
       data-testid="conversion-filter-bar"
       data-utrace-visual-target="conversion_filter_bar"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg bg-card shadow-button">
-          {SELECTABLE_PRESETS.map((preset) => (
-            <Button
-              key={preset}
-              type="button"
-              size="sm"
-              variant="ghost"
-              className={SEGMENT}
-              data-active={activePreset === preset}
-              data-testid={`date-preset-${preset}`}
-              data-utrace-target="conversion_filter_date_range"
-              data-utrace-safe-value="safe.control_label"
-              onClick={() => {
-                const range = presetDateRange(preset, now);
-                setState({ ...state, startDate: range.startDate, endDate: range.endDate });
-              }}
-            >
-              {DATE_RANGE_PRESET_LABELS[preset]}
-            </Button>
-          ))}
+      <div className="flex w-full items-center gap-2 overflow-x-auto" data-testid="date-filter-row">
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="inline-flex rounded-lg bg-card shadow-button">
+            {SELECTABLE_PRESETS.map((preset) => (
+              <Button
+                key={preset}
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={SEGMENT}
+                data-active={activePreset === preset}
+                data-testid={`date-preset-${preset}`}
+                data-utrace-target="conversion_filter_date_range"
+                data-utrace-safe-value="safe.control_label"
+                onClick={() => {
+                  const range = presetDateRange(preset, now);
+                  setState({ ...state, startDate: range.startDate, endDate: range.endDate });
+                }}
+              >
+                {DATE_RANGE_PRESET_LABELS[preset]}
+              </Button>
+            ))}
+          </div>
+          <Popover open={dateOpen} onOpenChange={setDateOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 px-2.5 text-sm data-[active=true]:bg-secondary data-[active=true]:shadow-button-pressed"
+                data-active={activePreset === "custom"}
+                data-testid="date-preset-custom"
+                data-utrace-target="conversion_filter_date_range"
+                data-utrace-safe-value="safe.control_label"
+                aria-label={`Custom range: ${state.startDate} to ${state.endDate}`}
+              >
+                <CalendarIcon className="text-foreground/70" />
+                <span>
+                  {state.startDate} to {state.endDate}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                numberOfMonths={2}
+                defaultMonth={start}
+                selected={{ from: start, to: end }}
+                onSelect={(range) => {
+                  if (range?.from && range?.to) {
+                    setState({
+                      ...state,
+                      startDate: toUtcDateString(range.from),
+                      endDate: toUtcDateString(range.to),
+                    });
+                  }
+                }}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-        <Popover open={dateOpen} onOpenChange={setDateOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 px-2.5 text-sm data-[active=true]:bg-secondary data-[active=true]:shadow-button-pressed"
-              data-active={activePreset === "custom"}
-              data-testid="date-preset-custom"
-              data-utrace-target="conversion_filter_date_range"
-              data-utrace-safe-value="safe.control_label"
-              aria-label={`Custom range: ${state.startDate} to ${state.endDate}`}
-            >
-              <CalendarIcon className="text-foreground/70" />
-              <span>
-                {state.startDate} to {state.endDate}
-              </span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              numberOfMonths={2}
-              defaultMonth={start}
-              selected={{ from: start, to: end }}
-              onSelect={(range) => {
-                if (range?.from && range?.to) {
-                  setState({
-                    ...state,
-                    startDate: toUtcDateString(range.from),
-                    endDate: toUtcDateString(range.to),
-                  });
-                }
-              }}
-            />
-          </PopoverContent>
-        </Popover>
+        <div className="ml-auto flex shrink-0 items-center gap-2" data-testid="saved-view-controls">
+          {savedViewControls}
+        </div>
       </div>
 
       <div className="flex w-full flex-wrap items-center gap-2">
