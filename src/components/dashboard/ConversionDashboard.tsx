@@ -3,10 +3,7 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named filter stacks persist within the signed-in account and can be reopened.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -29,6 +26,7 @@ import { KpiCards } from "@/components/dashboard/KpiCards";
 import { ProductTable } from "@/components/dashboard/ProductTable";
 import { ReviewsPanel } from "@/components/dashboard/ReviewsPanel";
 import { TrendChart } from "@/components/dashboard/TrendChart";
+import { SavedViews } from "@/components/dashboard/SavedViews";
 import {
   getConversionTrend,
   getKpis,
@@ -227,6 +225,14 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         conversionStates={dimensions.conversionStates}
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
+        savedViews={
+          <SavedViews
+            filters={filters}
+            now={now}
+            accountId={context.account.id}
+            onReopen={setFilterState}
+          />
+        }
       />
 
       {failure !== undefined && (

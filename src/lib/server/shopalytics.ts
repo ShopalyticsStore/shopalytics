@@ -11,6 +11,7 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
 
 import type {
   AnalyticsFilters,
@@ -22,6 +23,7 @@ import type {
   ProductRow,
   ProductSentiment,
   ReviewRow,
+  SavedView,
   SegmentRow,
   Sentiment,
   TrendPoint,
@@ -31,6 +33,41 @@ import { presentedClock } from "@/lib/fixture/presentation";
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
+
+// Also initializes existing installations without resetting their fixture data.
+async function ensureSavedViews(): Promise<void> {
+  await queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_views (
+      id uuid PRIMARY KEY,
+      account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      filters jsonb NOT NULL,
+      date_range_preset text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`,
+    [],
+  );
+}
+
+export async function getSavedViews(accountId: string): Promise<SavedView[]> {
+  await ensureSavedViews();
+  return queryRows<SavedView & QueryResultRow>(
+    `SELECT id, name, filters, date_range_preset AS "dateRangePreset"
+     FROM saved_views WHERE account_id = $1::uuid ORDER BY created_at, id`,
+    [accountId],
+  );
+}
+
+export async function saveView(accountId: string, view: Omit<SavedView, "id">): Promise<SavedView> {
+  await ensureSavedViews();
+  const rows = await queryRows<SavedView & QueryResultRow>(
+    `INSERT INTO saved_views (id, account_id, name, filters, date_range_preset)
+     VALUES ($1::uuid, $2::uuid, $3, $4::jsonb, $5)
+     RETURNING id, name, filters, date_range_preset AS "dateRangePreset"`,
+    [randomUUID(), accountId, view.name, JSON.stringify(view.filters), view.dateRangePreset],
+  );
+  return rows[0];
+}
 
 type CountedRow = QueryResultRow & {
   sessions: string | number;
