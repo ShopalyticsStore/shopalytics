@@ -6,6 +6,7 @@
 -- schema needs no UUID generation extension.
 
 DROP TABLE IF EXISTS utrace_preview_handoff_consumption CASCADE;
+DROP TABLE IF EXISTS saved_conversion_views CASCADE;
 DROP TABLE IF EXISTS fixture_presentation CASCADE;
 DROP TABLE IF EXISTS fixture_manifest CASCADE;
 DROP TABLE IF EXISTS customer_review_topics CASCADE;
@@ -38,6 +39,14 @@ CREATE TABLE products (
   id uuid PRIMARY KEY,
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   name text NOT NULL
+);
+
+CREATE TABLE saved_conversion_views (
+  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  definition jsonb NOT NULL,
+  PRIMARY KEY (account_id, user_id, name)
 );
 
 CREATE TABLE traffic_sources (
