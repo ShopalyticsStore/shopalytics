@@ -42,6 +42,16 @@ export interface DimensionRow {
   name: string;
 }
 
+export type SavedViewDateRange =
+  | { mode: "relative"; preset: "last_7_days" | "last_30_days" | "last_90_days" }
+  | { mode: "absolute"; startDate: string; endDate: string };
+
+export interface SavedView {
+  name: string;
+  filters: AnalyticsFilters;
+  dateRange: SavedViewDateRange;
+}
+
 export interface ConversionStateRow extends DimensionRow {
   key: string;
   ordinal: number;

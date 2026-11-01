@@ -3,10 +3,7 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named views persist the complete filter stack for the signed-in user.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -18,6 +15,9 @@ import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQueries } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/app/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   FilterBar,
   activeFilterCount,
@@ -31,6 +31,8 @@ import { ReviewsPanel } from "@/components/dashboard/ReviewsPanel";
 import { TrendChart } from "@/components/dashboard/TrendChart";
 import {
   getConversionTrend,
+  getSavedViews,
+  saveView,
   getKpis,
   getProductBreakdown,
   getReviews,
@@ -38,14 +40,20 @@ import {
   type ConversionStateRow,
   type DashboardContext,
   type DimensionRow,
+  type SavedView,
 } from "@/lib/db";
-import { matchDateRangePreset } from "@/lib/fixture/clock";
+import {
+  matchDateRangePreset,
+  presetDateRange,
+  resolveDashboardNow,
+  DATE_RANGE_PRESET_LABELS,
+} from "@/lib/fixture/clock";
 import {
   buildSeriesIdentity,
   type AppliedFilterValues,
   type SelectedDimension,
 } from "@/lib/utrace/chart-state";
-import { UTraceChartStateReporter } from "@/lib/utrace/chart-state-reporter";
+import { UTraceChartStateReporter, reportSavedView } from "@/lib/utrace/chart-state-reporter";
 import { useChartStateChannel } from "@/lib/utrace/use-chart-state";
 
 export type ConversionDimensions = Readonly<{
@@ -90,15 +98,74 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
     createDefaultFilterState(now, defaultConversionStateIds),
   );
 
-  const filters: AnalyticsFilters = filterState;
+  const { datePreset, ...filters }: { datePreset?: FilterState["datePreset"] } & AnalyticsFilters =
+    filterState;
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [viewName, setViewName] = useState("");
+  const [viewError, setViewError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getSavedViews()
+      .then((views) => {
+        if (active) setSavedViews(views);
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setViewError(error instanceof Error ? error.message : "Could not load saved views");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function saveCurrentView() {
+    setSaving(true);
+    setViewError(null);
+    const preset = datePreset ?? matchDateRangePreset(filters, now);
+    try {
+      const view = await saveView({
+        name: viewName.trim(),
+        filters,
+        dateRange:
+          preset === "custom"
+            ? { mode: "absolute", startDate: filters.startDate, endDate: filters.endDate }
+            : { mode: "relative", preset },
+      });
+      setSavedViews((views) => [...views.filter((entry) => entry.name !== view.name), view]);
+      reportSavedView("saved_view_created", view.name);
+      setViewName("");
+    } catch (error) {
+      setViewError(error instanceof Error ? error.message : "Could not save view");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function reopenView(view: SavedView) {
+    const range = view.dateRange;
+    const dates =
+      range.mode === "relative"
+        ? presetDateRange(range.preset, resolveDashboardNow(context.fixtureClock, new Date()))
+        : { startDate: range.startDate, endDate: range.endDate };
+    setFilterState({
+      ...view.filters,
+      ...dates,
+      datePreset: range.mode === "relative" ? range.preset : "custom",
+    });
+    reportSavedView("saved_view_reopened", view.name);
+  }
 
   const appliedFilters = useMemo<AppliedFilterValues>(
     () => ({
       dateRange: {
-        preset: matchDateRangePreset(
-          { startDate: filterState.startDate, endDate: filterState.endDate },
-          now,
-        ),
+        preset:
+          filterState.datePreset ??
+          matchDateRangePreset(
+            { startDate: filterState.startDate, endDate: filterState.endDate },
+            now,
+          ),
         startDate: filterState.startDate,
         endDate: filterState.endDate,
       },
@@ -227,6 +294,51 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         conversionStates={dimensions.conversionStates}
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
+        savedViewControls={
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <Label htmlFor="saved-view-name">View name</Label>
+            <Input
+              id="saved-view-name"
+              className="w-56"
+              value={viewName}
+              onChange={(event) => setViewName(event.target.value)}
+              maxLength={60}
+              placeholder="Name this filter stack"
+              data-utrace-target="saved_view_name_field"
+              data-utrace-safe-value="safe.view_name"
+            />
+            <Button
+              size="sm"
+              disabled={saving || !/^[\w ,'-]{1,60}$/u.test(viewName.trim())}
+              onClick={() => void saveCurrentView()}
+              data-utrace-target="saved_view_save_control"
+              data-utrace-safe-value="safe.control_label"
+            >
+              {saving ? "Saving…" : "Save view"}
+            </Button>
+            {savedViews.map((view) => (
+              <Button
+                key={view.name}
+                size="sm"
+                variant="outline"
+                onClick={() => reopenView(view)}
+                title={
+                  view.dateRange.mode === "relative"
+                    ? `${DATE_RANGE_PRESET_LABELS[view.dateRange.preset]} (relative)`
+                    : `${view.dateRange.startDate} to ${view.dateRange.endDate} (absolute)`
+                }
+                data-utrace-target="saved_view_reopen_control"
+              >
+                {view.name}
+              </Button>
+            ))}
+            {viewError !== null && (
+              <p role="alert" className="text-sm text-critical">
+                {viewError}
+              </p>
+            )}
+          </div>
+        }
       />
 
       {failure !== undefined && (

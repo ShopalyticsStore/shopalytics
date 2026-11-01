@@ -6,6 +6,7 @@
 
 import type {
   AnalyticsFilters,
+  SavedView,
   ConversionStateRow,
   DashboardContext,
   DimensionRow,
@@ -18,6 +19,8 @@ import type {
 } from "./types";
 
 type ApiBody =
+  | { action: "savedViews" }
+  | { action: "saveView"; view: SavedView }
   | { action: "dashboardContext" }
   | { action: "products" }
   | { action: "trafficSources" }
@@ -51,6 +54,14 @@ async function shopalyticsApi<T>(body: ApiBody): Promise<T> {
 
 export function getDashboardContext(): Promise<DashboardContext> {
   return shopalyticsApi({ action: "dashboardContext" });
+}
+
+export function getSavedViews(): Promise<SavedView[]> {
+  return shopalyticsApi({ action: "savedViews" });
+}
+
+export function saveView(view: SavedView): Promise<SavedView> {
+  return shopalyticsApi({ action: "saveView", view });
 }
 
 export function getProducts(): Promise<DimensionRow[]> {

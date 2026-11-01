@@ -14,6 +14,7 @@ import type { QueryResultRow } from "pg";
 
 import type {
   AnalyticsFilters,
+  SavedView,
   ConversionStateRow,
   DashboardContext,
   DimensionRow,
@@ -31,6 +32,44 @@ import { presentedClock } from "@/lib/fixture/presentation";
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
+
+async function ensureSavedViews(): Promise<void> {
+  await queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_conversion_views (
+    account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    definition jsonb NOT NULL,
+    PRIMARY KEY (account_id, user_id, name)
+  )`,
+    [],
+  );
+}
+
+export async function getSavedViews(accountId: string, userId: string): Promise<SavedView[]> {
+  await ensureSavedViews();
+  const rows = await queryRows<QueryResultRow & { definition: SavedView }>(
+    `SELECT definition FROM saved_conversion_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid ORDER BY name`,
+    [accountId, userId],
+  );
+  return rows.map((row) => row.definition);
+}
+
+export async function saveView(
+  accountId: string,
+  userId: string,
+  view: SavedView,
+): Promise<SavedView> {
+  await ensureSavedViews();
+  await queryRows(
+    `INSERT INTO saved_conversion_views (account_id, user_id, name, definition)
+     VALUES ($1::uuid, $2::uuid, $3, $4::jsonb)
+     ON CONFLICT (account_id, user_id, name) DO UPDATE SET definition = EXCLUDED.definition`,
+    [accountId, userId, view.name, JSON.stringify(view)],
+  );
+  return view;
+}
 
 type CountedRow = QueryResultRow & {
   sessions: string | number;
