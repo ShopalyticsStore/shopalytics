@@ -11,6 +11,7 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
 
 import type {
   AnalyticsFilters,
@@ -23,6 +24,7 @@ import type {
   ProductSentiment,
   ReviewRow,
   SegmentRow,
+  SavedConversionView,
   Sentiment,
   TrendPoint,
 } from "@/lib/db/types";
@@ -31,6 +33,30 @@ import { presentedClock } from "@/lib/fixture/presentation";
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
+
+export function getSavedViews(accountId: string, userId: string): Promise<SavedConversionView[]> {
+  return queryRows<SavedConversionView & QueryResultRow>(
+    `SELECT id, name, filters, date_preset AS "datePreset" FROM saved_conversion_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid ORDER BY created_at DESC, id`,
+    [accountId, userId],
+  );
+}
+
+export async function saveConversionView(
+  accountId: string,
+  userId: string,
+  name: string,
+  filters: AnalyticsFilters,
+  datePreset: SavedConversionView["datePreset"],
+): Promise<SavedConversionView> {
+  const id = randomUUID();
+  await queryRows(
+    `INSERT INTO saved_conversion_views (id, account_id, user_id, name, filters, date_preset)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::jsonb, $6)`,
+    [id, accountId, userId, name, JSON.stringify(filters), datePreset],
+  );
+  return { id, name, filters, datePreset };
+}
 
 type CountedRow = QueryResultRow & {
   sessions: string | number;
