@@ -17,6 +17,7 @@ import { buildManifest } from "@/lib/fixture/manifest";
 import { generateDudulemonDataset } from "@/lib/fixture/dataset";
 import { presetDateRange, shiftUtcDays, toUtcDateString } from "@/lib/fixture/clock";
 import { FIXTURE_CLOCK } from "@/lib/fixture/definition";
+import { presentFixtureAt } from "@/lib/fixture/presentation";
 import type { AnalyticsFilters } from "@/lib/db/types";
 
 const TEST_SCHEMA = "shopalytics_fixture_test";
@@ -56,7 +57,6 @@ function idOf(rows: readonly { id: string; name: string }[], name: string): stri
 function filters(overrides: Partial<AnalyticsFilters>): AnalyticsFilters {
   const window = presetDateRange("last_30_days", new Date(FIXTURE_CLOCK));
   return {
-    accountId,
     productIds: [],
     trafficSourceIds: [],
     demographicSegmentIds: [],
@@ -90,7 +90,10 @@ beforeAll(async () => {
   });
 
   shopalytics = await import("@/lib/server/shopalytics");
-  const context = await shopalytics.getDashboardContext("production_profile", null);
+  const context = await shopalytics.getDashboardContext(
+    "production_profile",
+    "maya@dudulemon.example.com",
+  );
   accountId = context.account.id;
 
   const [sources, segments, topics, states] = await Promise.all([
@@ -153,7 +156,7 @@ describe("the seeded Dudulemon fixture", () => {
       sentiments: ["negative"],
     });
 
-    const kpis = await shopalytics.getKpis(canonical);
+    const kpis = await shopalytics.getKpis(accountId, canonical);
 
     expect(kpis.filtered.sessions).toBeGreaterThan(0);
     expect(kpis.filtered.stateShare).toBeGreaterThan(0);
@@ -172,9 +175,9 @@ describe("the seeded Dudulemon fixture", () => {
     const wrongSegment = { ...canonical, demographicSegmentIds: [dimensions.women3544] };
 
     const [exact, channel, segment] = await Promise.all([
-      shopalytics.getKpis(canonical),
-      shopalytics.getKpis(wrongChannel),
-      shopalytics.getKpis(wrongSegment),
+      shopalytics.getKpis(accountId, canonical),
+      shopalytics.getKpis(accountId, wrongChannel),
+      shopalytics.getKpis(accountId, wrongSegment),
     ]);
 
     expect(channel.filtered.sessions).toBeGreaterThan(0);
@@ -193,8 +196,8 @@ describe("the seeded Dudulemon fixture", () => {
       sentiments: ["negative"],
     });
 
-    const purchased = await shopalytics.getKpis(base);
-    const dropOff = await shopalytics.getKpis({
+    const purchased = await shopalytics.getKpis(accountId, base);
+    const dropOff = await shopalytics.getKpis(accountId, {
       ...base,
       conversionStateIds: [dimensions.cartDropOff],
     });
@@ -211,8 +214,9 @@ describe("the seeded Dudulemon fixture", () => {
       sentiments: ["negative"],
     });
 
-    const reviews = await shopalytics.getReviews(canonical, 200);
+    const reviews = await shopalytics.getReviews(accountId, canonical, 200);
     const nearMissTopic = await shopalytics.getReviews(
+      accountId,
       { ...canonical, reviewTopicIds: [dimensions.fitConsistency] },
       200,
     );
@@ -238,8 +242,9 @@ describe("the seeded Dudulemon fixture", () => {
       sentiments: ["negative"],
     });
 
-    const inside = await shopalytics.getReviews(canonical, 200);
+    const inside = await shopalytics.getReviews(accountId, canonical, 200);
     const outside = await shopalytics.getReviews(
+      accountId,
       {
         ...canonical,
         startDate: toUtcDateString(shiftUtcDays(clock, -119)),
@@ -266,5 +271,52 @@ describe("the seeded Dudulemon fixture", () => {
     await client.query(insert, [tokenId, userId]);
 
     await expect(client.query(insert, [tokenId, userId])).rejects.toMatchObject({ code: "23505" });
+  });
+});
+
+// Runs last: it moves the dates every earlier test reads at the pinned clock.
+describe("presenting the fixture on today's date", () => {
+  test("moves the dates and the dashboard clock together, keeping each preset's rows", async () => {
+    const canonical = filters({
+      trafficSourceIds: [dimensions.tiktok],
+      demographicSegmentIds: [dimensions.women2534],
+      reviewTopicIds: [dimensions.sizing],
+      sentiments: ["negative"],
+    });
+    const [kpisBefore, reviewsBefore] = await Promise.all([
+      shopalytics.getKpis(accountId, canonical),
+      shopalytics.getReviews(accountId, canonical, 200),
+    ]);
+    await client.query(`SET search_path TO "${TEST_SCHEMA}"`);
+
+    const evening = await presentFixtureAt(client, new Date("2026-10-31T23:30:00Z"));
+    const context = await shopalytics.getDashboardContext(
+      "preview_handoff",
+      "maya@dudulemon.example.com",
+    );
+    const window = presetDateRange("last_30_days", new Date(context.fixtureClock ?? ""));
+    const moved = { ...canonical, startDate: window.startDate, endDate: window.endDate };
+    const [kpisAfter, reviewsAfter] = await Promise.all([
+      shopalytics.getKpis(accountId, moved),
+      shopalytics.getReviews(accountId, moved, 200),
+    ]);
+
+    expect(evening).toMatchObject({ movedDays: 47, shiftDays: 47 });
+    expect(context.fixtureClock).toBe("2026-10-31T09:00:00.000Z");
+    expect(window.endDate).toBe("2026-10-31");
+    expect(kpisAfter).toEqual(kpisBefore);
+    expect(reviewsAfter.map((review) => review.id)).toEqual(
+      reviewsBefore.map((review) => review.id),
+    );
+
+    const beforeNextClockDay = await presentFixtureAt(client, new Date("2026-11-01T08:59:00Z"));
+    const nextClockDay = await presentFixtureAt(client, new Date("2026-11-01T09:00:00Z"));
+    const manifest = await client.query<{ fixture_clock: string }>(
+      "SELECT fixture_clock FROM fixture_manifest",
+    );
+
+    expect(beforeNextClockDay).toMatchObject({ movedDays: 0, shiftDays: 47 });
+    expect(nextClockDay).toMatchObject({ movedDays: 1, shiftDays: 48 });
+    expect(manifest.rows[0]?.fixture_clock).toBe(FIXTURE_CLOCK);
   });
 });

@@ -6,6 +6,7 @@
 -- schema needs no UUID generation extension.
 
 DROP TABLE IF EXISTS utrace_preview_handoff_consumption CASCADE;
+DROP TABLE IF EXISTS fixture_presentation CASCADE;
 DROP TABLE IF EXISTS fixture_manifest CASCADE;
 DROP TABLE IF EXISTS customer_review_topics CASCADE;
 DROP TABLE IF EXISTS customer_reviews CASCADE;
@@ -129,6 +130,14 @@ CREATE TABLE fixture_manifest (
   seed_target text NOT NULL,
   document jsonb NOT NULL,
   installed_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- How many whole days the runtime moved every date after the fixture clock so
+-- the clock's day reads as today (see `src/lib/fixture/presentation.ts`). No
+-- row means the dates are as generated. `fixture_manifest` keeps the identity.
+CREATE TABLE fixture_presentation (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  shift_days integer NOT NULL
 );
 
 -- One row per consumed preview handoff token. The primary key is what makes a

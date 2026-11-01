@@ -112,8 +112,9 @@ export interface DashboardContext {
   user: { id: string; name: string; email: string; role: string };
   /**
    * The RFC 3339 instant the dashboard treats as "now", or `null` when the
-   * fixture runs on real time. The browser cannot read
-   * `SHOPALYTICS_FIXTURE_CLOCK` directly, so the server sends it here.
+   * fixture runs on real time: `SHOPALYTICS_FIXTURE_CLOCK` moved by the same
+   * days as the dataset's dates (`src/lib/fixture/presentation.ts`). The
+   * browser cannot read the variable directly, so the server sends it here.
    */
   fixtureClock: string | null;
   /** How the current user was authenticated. */

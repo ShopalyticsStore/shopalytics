@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
  */
 export function Logo({ className }: { className?: string }) {
   return (
-    <Image src={shopalyticsLogo} alt="Shopalytics" unoptimized className={cn("rounded-[20%]", className)} />
+    <Image
+      src={shopalyticsLogo}
+      alt="Shopalytics"
+      unoptimized
+      className={cn("rounded-[20%]", className)}
+    />
   );
 }

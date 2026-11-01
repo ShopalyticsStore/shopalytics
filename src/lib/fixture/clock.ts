@@ -9,6 +9,10 @@
  * variables at build time and the preview runtime must be able to set the clock
  * at start-up.
  *
+ * A preview runtime moves the dataset's dates and this clock forward together
+ * so the clock's day reads as today (`src/lib/fixture/presentation.ts`); the
+ * rows each preset selects stay the same.
+ *
  * Unset or empty means real time. An unparsable value is a hard failure: a demo
  * that silently falls back to wall-clock time produces evidence that cannot be
  * reproduced.

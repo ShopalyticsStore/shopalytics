@@ -27,6 +27,7 @@ import type {
   TrendPoint,
 } from "@/lib/db/types";
 import { FIXTURE_CLOCK_ENV_NAME, resolveFixtureClock } from "@/lib/fixture/clock";
+import { presentedClock } from "@/lib/fixture/presentation";
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
@@ -166,6 +167,15 @@ function toKpi(row: CountedRow | undefined): KpiSummary {
   };
 }
 
+/** The fixture clock moved with the dataset's dates; no row means they never moved. */
+async function readPresentedClock(fixtureClock: Date): Promise<Date> {
+  const rows = await queryRows<QueryResultRow & { shift_days: number }>(
+    `SELECT shift_days FROM fixture_presentation`,
+    [],
+  );
+  return presentedClock(fixtureClock, rows[0]?.shift_days ?? 0);
+}
+
 /** The signed-in user and the one account they belong to, plus the fixture clock. */
 export async function getDashboardContext(
   authenticatedVia: DashboardContext["authenticatedVia"],
@@ -205,7 +215,7 @@ export async function getDashboardContext(
   return {
     account: { id: row.account_id, name: row.account_name },
     user: { id: row.user_id, name: row.user_name, email: row.email, role: row.role },
-    fixtureClock: clock === null ? null : clock.toISOString(),
+    fixtureClock: clock === null ? null : (await readPresentedClock(clock)).toISOString(),
     authenticatedVia,
   };
 }

@@ -124,6 +124,11 @@ else
   log "using the base dataset baked into the image"
 fi
 
+# The dates move on every start, restarts included, so a runtime claimed days
+# after it was built still ends its `Last 30 days` today.
+log "moving the dataset's dates so its clock's day is today"
+npm run db:present
+
 if [ "$UTRACE_PROFILE" = "preview" ]; then
   log "starting the application on port $APP_PORT in the preview profile"
   npm run start:preview &
