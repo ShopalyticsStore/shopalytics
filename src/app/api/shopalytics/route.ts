@@ -22,6 +22,8 @@ import {
   getProducts,
   getReviewTopics,
   getReviews,
+  getSavedViews,
+  saveView,
   getSegmentBreakdown,
   getTrafficSources,
 } from "@/lib/server/shopalytics";
@@ -45,6 +47,20 @@ const analyticsFiltersSchema = z
   .strict();
 
 const requestSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("savedViews") }).strict(),
+  z
+    .object({
+      action: z.literal("saveView"),
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .max(60)
+        .regex(/^[\w ,'-]+$/u),
+      filters: analyticsFiltersSchema,
+      dateRangePreset: z.enum(["last_7_days", "last_30_days", "last_90_days", "custom"]),
+    })
+    .strict(),
   z.object({ action: z.literal("dashboardContext") }).strict(),
   z.object({ action: z.literal("products") }).strict(),
   z.object({ action: z.literal("trafficSources") }).strict(),
@@ -102,6 +118,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     const command = parsed.data;
 
     switch (command.action) {
+      case "savedViews":
+        return json(await getSavedViews(accountId));
+      case "saveView":
+        return json(await saveView(accountId, command));
       case "dashboardContext":
         return json(context);
       case "products":
