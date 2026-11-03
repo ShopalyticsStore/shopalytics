@@ -6,6 +6,13 @@
 # Required environment:
 #   SHOPALYTICS_SEED_TARGET          base | candidate
 #   UTRACE_PROFILE                   production | preview
+# Optional:
+#   SHOPALYTICS_SERVE_MODE           build (default) serves the image's production
+#                                    build; dev serves `next dev`, so files written
+#                                    into the application directory compile on the
+#                                    next request instead of needing a new build
+#   UTRACE_PREVIEW_DEV_ORIGINS       comma-separated preview hosts `next dev` serves
+#                                    its development resources to (dev mode only)
 # Required when UTRACE_PROFILE=preview:
 #   UTRACE_PREVIEW_HANDOFF_SECRET    signs the one-time handoff and the session
 #   UTRACE_PREVIEW_ROUTE_SIGNING_SECRET  verifies x-utrace-route-context
@@ -53,6 +60,12 @@ log "--- start $(date -u +%Y-%m-%dT%H:%M:%SZ) pid $$ target ${SHOPALYTICS_SEED_T
 case "$SHOPALYTICS_SEED_TARGET" in
   base|candidate) ;;
   *) fail "SHOPALYTICS_SEED_TARGET must be base or candidate, received '$SHOPALYTICS_SEED_TARGET'" ;;
+esac
+
+SERVE_MODE="${SHOPALYTICS_SERVE_MODE:-build}"
+case "$SERVE_MODE" in
+  build|dev) ;;
+  *) fail "SHOPALYTICS_SERVE_MODE must be build or dev, received '$SERVE_MODE'" ;;
 esac
 
 ACTIVATION_FILE="$APP_DIR/.utrace-activation"
@@ -129,7 +142,14 @@ fi
 log "moving the dataset's dates so its clock's day is today"
 npm run db:present
 
-if [ "$UTRACE_PROFILE" = "preview" ]; then
+if [ "$UTRACE_PROFILE" = "preview" ] && [ "$SERVE_MODE" = "dev" ]; then
+  # `next dev` inlines the public profile when it compiles, so it reads the values
+  # the image's build recorded rather than the production build's output.
+  # shellcheck disable=SC1091
+  . "$APP_DIR/.build-profile"
+  log "starting the development server on port $APP_PORT in the preview profile"
+  NODE_ENV=development npm run dev:preview &
+elif [ "$UTRACE_PROFILE" = "preview" ]; then
   log "starting the application on port $APP_PORT in the preview profile"
   npm run start:preview &
 else

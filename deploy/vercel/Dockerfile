@@ -88,6 +88,12 @@ RUN mkdir -p "$PGDATA" /run/postgresql \
  && su postgres -c "pg_ctl -D $PGDATA -m fast -w stop" \
  && chown -R postgres:postgres "$PGDATA"
 
+# A development-server runtime compiles with the same public profile the build
+# inlined, so the image records it for the supervisor.
+RUN printf 'export NEXT_PUBLIC_UTRACE_PROFILE=%s NEXT_PUBLIC_UTRACE_SDK_INSTALLATION_ID=%s NEXT_PUBLIC_UTRACE_CLIENT_RELEASE_ID=%s\n' \
+      "$NEXT_PUBLIC_UTRACE_PROFILE" "$NEXT_PUBLIC_UTRACE_SDK_INSTALLATION_ID" "$NEXT_PUBLIC_UTRACE_CLIENT_RELEASE_ID" \
+      > /srv/shopalytics/.build-profile
+
 # The runtime reports what it was built from; `GET /api/health` compares it with
 # the manifest identity the database actually holds.
 RUN SHOPALYTICS_FIXTURE_MANIFEST_HASH="$(node -p "require('./fixtures/dudulemon/manifest.json').content_hash")" \
