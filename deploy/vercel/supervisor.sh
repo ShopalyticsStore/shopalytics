@@ -148,7 +148,7 @@ if [ "$UTRACE_PROFILE" = "preview" ] && [ "$SERVE_MODE" = "dev" ]; then
   # shellcheck disable=SC1091
   . "$APP_DIR/.build-profile"
   log "starting the development server on port $APP_PORT in the preview profile"
-  NODE_ENV=development npm run dev:preview &
+  NODE_ENV=development UTRACE_PRELOAD_IN_WORKER=1 npm run dev:preview &
 elif [ "$UTRACE_PROFILE" = "preview" ]; then
   log "starting the application on port $APP_PORT in the preview profile"
   npm run start:preview &

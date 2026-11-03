@@ -20,11 +20,19 @@
 const PROFILE_ENV_NAME = "UTRACE_PROFILE";
 const SERVER_SDK_PRELOAD_SPECIFIER = "@utrace/server-sdk/preload";
 
+// `next dev` forks its server into a worker that inherits this preload, so a
+// development-server runtime loads the SDK in the worker alone: one process, one
+// activation.
+const servedByWorker = process.env.UTRACE_PRELOAD_IN_WORKER === "1";
+const isWorker = process.env.NEXT_PRIVATE_WORKER === "1";
+
 const rawProfile = process.env[PROFILE_ENV_NAME];
 const profile =
   rawProfile === undefined || rawProfile.trim() === "" ? "production" : rawProfile.trim();
 
-if (profile === "preview") {
+if (profile === "preview" && servedByWorker && !isWorker) {
+  // The CLI process that forks the worker runs no application code.
+} else if (profile === "preview") {
   try {
     await import(SERVER_SDK_PRELOAD_SPECIFIER);
   } catch (error) {
