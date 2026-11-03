@@ -8,7 +8,6 @@
     "build": "next build",
     "start": "next start -p 3300",
     "start:preview": "node --import ./utrace/preload.mjs node_modules/next/dist/bin/next start -p 3300",
-    "dev:preview": "node --import ./utrace/preload.mjs node_modules/next/dist/bin/next dev -p 3300",
     "utrace:vendor": "node --import tsx scripts/utrace/vendor.ts",
     "utrace:manifest": "node --import tsx scripts/utrace/manifests.ts",
     "lint": "eslint .",

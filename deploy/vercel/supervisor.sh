@@ -6,13 +6,6 @@
 # Required environment:
 #   SHOPALYTICS_SEED_TARGET          base | candidate
 #   UTRACE_PROFILE                   production | preview
-# Optional:
-#   SHOPALYTICS_SERVE_MODE           build (default) serves the image's production
-#                                    build; dev serves `next dev`, so files written
-#                                    into the application directory compile on the
-#                                    next request instead of needing a new build
-#   UTRACE_PREVIEW_DEV_ORIGINS       comma-separated preview hosts `next dev` serves
-#                                    its development resources to (dev mode only)
 # Required when UTRACE_PROFILE=preview:
 #   UTRACE_PREVIEW_HANDOFF_SECRET    signs the one-time handoff and the session
 #   UTRACE_PREVIEW_ROUTE_SIGNING_SECRET  verifies x-utrace-route-context
@@ -30,6 +23,10 @@
 # no bootstrap credential, so the packaged SDK stays dormant by its own
 # contract; the control plane's readiness probes are what refuse to route a
 # runtime whose Server SDK never activated.
+#
+# SIGUSR1 restarts the application alone, which is how a candidate runtime
+# serves a build `shopalytics-rebuild` made from its new files
+# (`shopalytics-restart-app` sends it and waits for health).
 #
 # `base` uses the dataset baked into the image. `candidate` reinstalls the same
 # manifest identity so the runtime records that it is a candidate. Either way
@@ -60,12 +57,6 @@ log "--- start $(date -u +%Y-%m-%dT%H:%M:%SZ) pid $$ target ${SHOPALYTICS_SEED_T
 case "$SHOPALYTICS_SEED_TARGET" in
   base|candidate) ;;
   *) fail "SHOPALYTICS_SEED_TARGET must be base or candidate, received '$SHOPALYTICS_SEED_TARGET'" ;;
-esac
-
-SERVE_MODE="${SHOPALYTICS_SERVE_MODE:-build}"
-case "$SERVE_MODE" in
-  build|dev) ;;
-  *) fail "SHOPALYTICS_SERVE_MODE must be build or dev, received '$SERVE_MODE'" ;;
 esac
 
 ACTIVATION_FILE="$APP_DIR/.utrace-activation"
@@ -142,32 +133,52 @@ fi
 log "moving the dataset's dates so its clock's day is today"
 npm run db:present
 
-if [ "$UTRACE_PROFILE" = "preview" ] && [ "$SERVE_MODE" = "dev" ]; then
-  # `next dev` inlines the public profile when it compiles, so it reads the values
-  # the image's build recorded rather than the production build's output.
-  # shellcheck disable=SC1091
-  . "$APP_DIR/.build-profile"
-  log "starting the development server on port $APP_PORT in the preview profile"
-  NODE_ENV=development UTRACE_PRELOAD_IN_WORKER=1 npm run dev:preview &
-elif [ "$UTRACE_PROFILE" = "preview" ]; then
-  log "starting the application on port $APP_PORT in the preview profile"
-  npm run start:preview &
-else
-  log "starting the application on port $APP_PORT in the production profile"
-  npm run start &
-fi
-APP_PID=$!
+# The application runs as node itself rather than under npm, so the signal that
+# restarts it reaches the server and not only its launcher. The commands are the
+# package's start scripts.
+start_app() {
+  if [ "$UTRACE_PROFILE" = "preview" ]; then
+    log "starting the application on port $APP_PORT in the preview profile"
+    node --import ./utrace/preload.mjs node_modules/next/dist/bin/next start -p "$APP_PORT" &
+  else
+    log "starting the application on port $APP_PORT in the production profile"
+    node node_modules/next/dist/bin/next start -p "$APP_PORT" &
+  fi
+  APP_PID=$!
+  echo "$APP_PID" > "$APP_PID_FILE"
+  for attempt in $(seq 1 60); do
+    if curl -fsS "http://127.0.0.1:$APP_PORT/api/health" > /dev/null; then
+      log "healthy after ${attempt}s"
+      return 0
+    fi
+    if ! kill -0 "$APP_PID" 2>/dev/null; then
+      fail "the application exited before becoming healthy"
+    fi
+    sleep 1
+  done
+  fail "the application did not become healthy within 60s"
+}
 
-for attempt in $(seq 1 60); do
-  if curl -fsS "http://127.0.0.1:$APP_PORT/api/health" > /dev/null; then
-    log "healthy after ${attempt}s"
-    break
+# A candidate runtime rebuilds the application from the files written into it
+# (`shopalytics-rebuild`) and then asks for the application alone to restart
+# (`shopalytics-restart-app`, which sends SIGUSR1), so the new build is served
+# without restarting Postgres or reinstalling the dataset.
+APP_PID_FILE=/run/shopalytics-app.pid
+echo "$$" > /run/shopalytics-supervisor.pid
+RESTART_REQUESTED=0
+trap 'RESTART_REQUESTED=1' USR1
+
+start_app
+while true; do
+  status=0
+  wait "$APP_PID" || status=$?
+  if [ "$RESTART_REQUESTED" = "1" ]; then
+    RESTART_REQUESTED=0
+    log "restarting the application to serve the new build"
+    kill "$APP_PID" 2>/dev/null || true
+    while kill -0 "$APP_PID" 2>/dev/null; do sleep 0.1; done
+    start_app
+    continue
   fi
-  if ! kill -0 "$APP_PID" 2>/dev/null; then
-    fail "the application exited before becoming healthy"
-  fi
-  sleep 1
-  [ "$attempt" -eq 60 ] && fail "the application did not become healthy within 60s"
+  exit "$status"
 done
-
-wait "$APP_PID"

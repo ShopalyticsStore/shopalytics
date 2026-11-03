@@ -88,11 +88,12 @@ RUN mkdir -p "$PGDATA" /run/postgresql \
  && su postgres -c "pg_ctl -D $PGDATA -m fast -w stop" \
  && chown -R postgres:postgres "$PGDATA"
 
-# A development-server runtime compiles with the same public profile the build
-# inlined, so the image records it for the supervisor.
-RUN printf 'export NEXT_PUBLIC_UTRACE_PROFILE=%s NEXT_PUBLIC_UTRACE_SDK_INSTALLATION_ID=%s NEXT_PUBLIC_UTRACE_CLIENT_RELEASE_ID=%s\n' \
-      "$NEXT_PUBLIC_UTRACE_PROFILE" "$NEXT_PUBLIC_UTRACE_SDK_INSTALLATION_ID" "$NEXT_PUBLIC_UTRACE_CLIENT_RELEASE_ID" \
-      > /srv/shopalytics/.build-profile
+# A candidate runtime rebuilds the application from the files the control plane
+# writes into it, so the image records the environment this build ran in, and the
+# build cache it left in .next/cache makes that rebuild incremental.
+RUN bash -c 'export -p' \
+  | grep -E '^declare -x (NODE_ENV|PORT|DATABASE_SSL|SHOPALYTICS_[A-Z_]+|UTRACE_PROFILE|NEXT_PUBLIC_[A-Z_]+)=' \
+  > /srv/shopalytics/.build-environment
 
 # The runtime reports what it was built from; `GET /api/health` compares it with
 # the manifest identity the database actually holds.
@@ -100,6 +101,9 @@ RUN SHOPALYTICS_FIXTURE_MANIFEST_HASH="$(node -p "require('./fixtures/dudulemon/
  && echo "SHOPALYTICS_FIXTURE_MANIFEST_HASH=$SHOPALYTICS_FIXTURE_MANIFEST_HASH" > /srv/shopalytics/.build-identity
 
 COPY deploy/vercel/supervisor.sh /usr/local/bin/shopalytics-supervisor
-RUN chmod +x /usr/local/bin/shopalytics-supervisor
+COPY deploy/vercel/rebuild.sh /usr/local/bin/shopalytics-rebuild
+COPY deploy/vercel/restart-app.sh /usr/local/bin/shopalytics-restart-app
+RUN chmod +x /usr/local/bin/shopalytics-supervisor /usr/local/bin/shopalytics-rebuild \
+      /usr/local/bin/shopalytics-restart-app
 
 EXPOSE 3300
