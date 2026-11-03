@@ -20,11 +20,12 @@
 const PROFILE_ENV_NAME = "UTRACE_PROFILE";
 const SERVER_SDK_PRELOAD_SPECIFIER = "@utrace/server-sdk/preload";
 
-// `next dev` forks its server into a worker that inherits this preload, so a
-// development-server runtime loads the SDK in the worker alone: one process, one
-// activation.
+// `next dev` forks its HTTP server from `next/dist/server/lib/start-server.js`
+// and passes this preload to every process it starts, its compiler's helpers
+// included, so a development-server runtime loads the SDK in that server alone:
+// one process, one activation.
 const servedByWorker = process.env.UTRACE_PRELOAD_IN_WORKER === "1";
-const isWorker = process.env.NEXT_PRIVATE_WORKER === "1";
+const isWorker = (process.argv[1] ?? "").endsWith("/next/dist/server/lib/start-server.js");
 
 const rawProfile = process.env[PROFILE_ENV_NAME];
 const profile =
