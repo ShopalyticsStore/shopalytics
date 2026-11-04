@@ -2,15 +2,14 @@
  * The conversion filter stack: date range, channel, demographic segment,
  * review topic, sentiment, conversion state and product.
  *
- * The stack lives in React state and nothing persists it. Leaving or reloading
- * the dashboard loses it, which is the workflow problem the uTrace demo is
- * about; do not add local storage, a URL parameter or a saved view here.
+ * The stack lives in dashboard React state; named views can persist and restore
+ * it through the dashboard's saved-view controls.
  *
  * "Now" comes from the fixture clock so `Last 30 days` selects the same rows on
  * every run.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { parseISO } from "date-fns";
 
@@ -39,6 +38,7 @@ export interface FilterState {
 }
 
 interface Props {
+  savedViews?: ReactNode;
   state: FilterState;
   setState: (next: FilterState) => void;
   now: Date;
@@ -101,6 +101,7 @@ export function activeFilterCount(filters: FilterState): number {
 }
 
 export function FilterBar({
+  savedViews,
   state,
   setState,
   now,
@@ -126,7 +127,7 @@ export function FilterBar({
       data-testid="conversion-filter-bar"
       data-utrace-visual-target="conversion_filter_bar"
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg bg-card shadow-button">
           {SELECTABLE_PRESETS.map((preset) => (
             <Button
@@ -184,6 +185,7 @@ export function FilterBar({
             />
           </PopoverContent>
         </Popover>
+        <div className="ml-auto">{savedViews}</div>
       </div>
 
       <div className="flex w-full flex-wrap items-center gap-2">

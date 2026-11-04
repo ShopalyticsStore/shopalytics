@@ -11,9 +11,11 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
 
 import type {
   AnalyticsFilters,
+  SavedConversionView,
   ConversionStateRow,
   DashboardContext,
   DimensionRow,
@@ -31,6 +33,43 @@ import { presentedClock } from "@/lib/fixture/presentation";
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
+
+// Existing installations also acquire the table without resetting fixture data.
+async function ensureSavedViews(): Promise<void> {
+  await queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_conversion_views (
+    id uuid PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    filters jsonb NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+    [],
+  );
+}
+
+export async function getSavedViews(userId: string): Promise<SavedConversionView[]> {
+  await ensureSavedViews();
+  return queryRows<SavedConversionView & QueryResultRow>(
+    `SELECT id, name, filters FROM saved_conversion_views
+     WHERE user_id = $1::uuid ORDER BY created_at DESC, id`,
+    [userId],
+  );
+}
+
+export async function saveView(
+  userId: string,
+  name: string,
+  filters: AnalyticsFilters,
+): Promise<SavedConversionView> {
+  await ensureSavedViews();
+  const rows = await queryRows<SavedConversionView & QueryResultRow>(
+    `INSERT INTO saved_conversion_views (id, user_id, name, filters)
+     VALUES ($1::uuid, $2::uuid, $3, $4::jsonb) RETURNING id, name, filters`,
+    [randomUUID(), userId, name, JSON.stringify(filters)],
+  );
+  return rows[0]!;
+}
 
 type CountedRow = QueryResultRow & {
   sessions: string | number;

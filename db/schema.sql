@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS demographic_segments CASCADE;
 DROP TABLE IF EXISTS traffic_sources CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS saved_conversion_views CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
 
 CREATE TABLE accounts (
@@ -38,6 +39,14 @@ CREATE TABLE products (
   id uuid PRIMARY KEY,
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   name text NOT NULL
+);
+
+CREATE TABLE saved_conversion_views (
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  filters jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE traffic_sources (

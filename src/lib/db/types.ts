@@ -42,6 +42,12 @@ export interface DimensionRow {
   name: string;
 }
 
+export interface SavedConversionView {
+  id: string;
+  name: string;
+  filters: AnalyticsFilters;
+}
+
 export interface ConversionStateRow extends DimensionRow {
   key: string;
   ordinal: number;
