@@ -11,6 +11,7 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
 
 import type {
   AnalyticsFilters,
@@ -22,6 +23,7 @@ import type {
   ProductRow,
   ProductSentiment,
   ReviewRow,
+  SavedView,
   SegmentRow,
   Sentiment,
   TrendPoint,
@@ -31,6 +33,54 @@ import { presentedClock } from "@/lib/fixture/presentation";
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
+
+// Additive initialization also supports already-installed fixture databases.
+let savedViewsReady: Promise<unknown> | undefined;
+function ensureSavedViews(): Promise<unknown> {
+  savedViewsReady ??= queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_views (
+      id uuid PRIMARY KEY,
+      account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 60),
+      filters jsonb NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`,
+    [],
+  ).catch((error: unknown) => {
+    savedViewsReady = undefined;
+    throw error;
+  });
+  return savedViewsReady;
+}
+
+export async function getSavedViews(accountId: string, userId: string): Promise<SavedView[]> {
+  await ensureSavedViews();
+  return queryRows<SavedView & QueryResultRow>(
+    `SELECT id, name, filters FROM saved_views
+     WHERE account_id = $1::uuid AND user_id = $2::uuid
+     ORDER BY created_at DESC, id`,
+    [accountId, userId],
+  );
+}
+
+export async function saveView(
+  accountId: string,
+  userId: string,
+  name: string,
+  filters: AnalyticsFilters,
+): Promise<SavedView> {
+  await ensureSavedViews();
+  const rows = await queryRows<SavedView & QueryResultRow>(
+    `INSERT INTO saved_views (id, account_id, user_id, name, filters)
+     SELECT $1::uuid, u.account_id, u.id, $4::text, $5::jsonb
+     FROM users u WHERE u.account_id = $2::uuid AND u.id = $3::uuid
+     RETURNING id, name, filters`,
+    [randomUUID(), accountId, userId, name, JSON.stringify(filters)],
+  );
+  if (rows[0] === undefined) throw new Error("Saved view owner is unavailable");
+  return rows[0];
+}
 
 type CountedRow = QueryResultRow & {
   sessions: string | number;

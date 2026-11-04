@@ -37,6 +37,12 @@ export interface AnalyticsFilters {
   endDate: string;
 }
 
+export interface SavedView {
+  id: string;
+  name: string;
+  filters: AnalyticsFilters;
+}
+
 export interface DimensionRow {
   id: string;
   name: string;
