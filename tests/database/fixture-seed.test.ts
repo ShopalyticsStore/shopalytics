@@ -122,6 +122,37 @@ afterAll(async () => {
 });
 
 describe("the seeded Dudulemon fixture", () => {
+  test("saved views persist every filter and are isolated by user and account", async () => {
+    const context = await shopalytics.getDashboardContext(
+      "production_profile",
+      "maya@dudulemon.example.com",
+    );
+    const products = await shopalytics.getProducts(accountId);
+    const stack = filters({
+      productIds: [products[0]!.id],
+      trafficSourceIds: [dimensions.tiktok],
+      demographicSegmentIds: [dimensions.women2534],
+      reviewTopicIds: [dimensions.sizing],
+      sentiments: ["negative", "neutral"],
+      conversionStateIds: [dimensions.cartDropOff, dimensions.purchased],
+      startDate: "2026-08-20",
+      endDate: "2026-09-10",
+    });
+    const saved = await shopalytics.saveView(accountId, context.user.id, "Monday review", stack);
+    const restored = await shopalytics.getSavedViews(accountId, context.user.id);
+    expect(restored).toContainEqual(saved);
+    expect(restored.find((view) => view.id === saved.id)?.filters).toEqual(stack);
+    expect(await shopalytics.getKpis(accountId, restored[0]!.filters)).toEqual(
+      await shopalytics.getKpis(accountId, stack),
+    );
+    const otherId = "00000000-0000-4000-8000-000000000001";
+    expect(await shopalytics.getSavedViews(accountId, otherId)).toEqual([]);
+    expect(await shopalytics.getSavedViews(otherId, context.user.id)).toEqual([]);
+    await expect(
+      shopalytics.saveView(otherId, context.user.id, "Invalid", stack),
+    ).rejects.toThrow();
+  });
+
   test("records the manifest identity it installed", async () => {
     const expected = buildManifest(generateDudulemonDataset());
     const rows = await client.query<{
