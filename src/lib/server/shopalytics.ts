@@ -11,6 +11,7 @@
  */
 
 import type { QueryResultRow } from "pg";
+import { randomUUID } from "node:crypto";
 
 import type {
   AnalyticsFilters,
@@ -22,6 +23,7 @@ import type {
   ProductRow,
   ProductSentiment,
   ReviewRow,
+  SavedConversionView,
   SegmentRow,
   Sentiment,
   TrendPoint,
@@ -31,6 +33,51 @@ import { presentedClock } from "@/lib/fixture/presentation";
 import { queryRows } from "./db";
 
 type SqlValue = string | number | boolean | Date | null | readonly string[];
+
+// Existing installations gain the same table as fresh fixture installations.
+async function ensureSavedViews(): Promise<void> {
+  await queryRows(
+    `CREATE TABLE IF NOT EXISTS saved_conversion_views (
+    id uuid PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    filters jsonb NOT NULL,
+    date_range_preset text NOT NULL DEFAULT 'custom',
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+    [],
+  );
+  await queryRows(
+    `ALTER TABLE saved_conversion_views
+     ADD COLUMN IF NOT EXISTS date_range_preset text NOT NULL DEFAULT 'custom'`,
+    [],
+  );
+}
+
+export async function getSavedViews(userId: string): Promise<SavedConversionView[]> {
+  await ensureSavedViews();
+  return queryRows<SavedConversionView & QueryResultRow>(
+    `SELECT id, name, filters, date_range_preset AS "dateRangePreset" FROM saved_conversion_views
+     WHERE user_id = $1::uuid ORDER BY created_at DESC, id`,
+    [userId],
+  );
+}
+
+export async function saveView(
+  userId: string,
+  name: string,
+  filters: AnalyticsFilters,
+  dateRangePreset: SavedConversionView["dateRangePreset"],
+): Promise<SavedConversionView> {
+  await ensureSavedViews();
+  const rows = await queryRows<SavedConversionView & QueryResultRow>(
+    `INSERT INTO saved_conversion_views (id, user_id, name, filters, date_range_preset)
+     VALUES ($1::uuid, $2::uuid, $3, $4::jsonb, $5)
+     RETURNING id, name, filters, date_range_preset AS "dateRangePreset"`,
+    [randomUUID(), userId, name, JSON.stringify(filters), dateRangePreset],
+  );
+  return rows[0]!;
+}
 
 type CountedRow = QueryResultRow & {
   sessions: string | number;

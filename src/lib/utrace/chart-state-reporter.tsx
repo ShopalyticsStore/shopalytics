@@ -31,6 +31,22 @@ import {
 
 type MilestoneAttribute = Readonly<{ name: string; ruleId: string; value: string }>;
 
+export function reportSavedView(
+  milestoneId: "saved_view_created" | "saved_view_reopened",
+  view: { id: string; name: string },
+): void {
+  const status = utracePreviewStatus();
+  if (status.phase !== "ready") return;
+  status.session.annotations.milestone({
+    milestoneId,
+    severity: "info",
+    priority: "normal",
+    entityDefinitionId: "conversion_view",
+    entityInstanceRef: view.id,
+    attributes: [{ name: "view_name", ruleId: "safe.view_name", value: view.name }],
+  });
+}
+
 /**
  * How long to keep looking for a ready runtime. The gate withholds the
  * application subtree until the runtime is ready, so in a preview this

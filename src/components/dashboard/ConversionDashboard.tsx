@@ -3,10 +3,7 @@
 /**
  * The conversion dashboard: the surface the uTrace demo is about.
  *
- * The filter stack is React state and nothing persists it. Leaving the page or
- * reloading the browser loses it, and rebuilding it every Monday is the
- * recurring cost the originating user describes. There is deliberately no saved
- * view here.
+ * Named views persist the complete filter stack for the signed-in user.
  *
  * Every applied filter, the displayed series identity and each surface's
  * rendering completion are published to the uTrace chart-state channel, so the
@@ -29,6 +26,7 @@ import { KpiCards } from "@/components/dashboard/KpiCards";
 import { ProductTable } from "@/components/dashboard/ProductTable";
 import { ReviewsPanel } from "@/components/dashboard/ReviewsPanel";
 import { TrendChart } from "@/components/dashboard/TrendChart";
+import { SavedViews } from "@/components/dashboard/SavedViews";
 import {
   getConversionTrend,
   getKpis,
@@ -163,7 +161,7 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
   }, [channel, appliedFilters]);
 
   useEffect(() => {
-    if (trendQuery.data === undefined) return;
+    if (trendQuery.data === undefined || trendQuery.isPlaceholderData) return;
     const at = new Date();
     channel.displaySeries("conversion_trend", series, at);
     channel.completeRender(
@@ -172,32 +170,32 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
       trend.length,
       at,
     );
-  }, [channel, series, trend, trendQuery.data]);
+  }, [channel, series, trend, trendQuery.data, trendQuery.isPlaceholderData]);
 
   useEffect(() => {
-    if (kpisQuery.data === undefined) return;
+    if (kpisQuery.data === undefined || kpisQuery.isPlaceholderData) return;
     channel.completeRender("conversion_kpis", "rendered", 1, new Date());
-  }, [channel, kpisQuery.data]);
+  }, [channel, kpisQuery.data, kpisQuery.isPlaceholderData]);
 
   useEffect(() => {
-    if (productsQuery.data === undefined) return;
+    if (productsQuery.data === undefined || productsQuery.isPlaceholderData) return;
     channel.completeRender(
       "product_breakdown",
       products.length === 0 ? "empty" : "rendered",
       products.length,
       new Date(),
     );
-  }, [channel, products, productsQuery.data]);
+  }, [channel, products, productsQuery.data, productsQuery.isPlaceholderData]);
 
   useEffect(() => {
-    if (reviewsQuery.data === undefined) return;
+    if (reviewsQuery.data === undefined || reviewsQuery.isPlaceholderData) return;
     channel.completeRender(
       "review_list",
       reviews.length === 0 ? "empty" : "rendered",
       reviews.length,
       new Date(),
     );
-  }, [channel, reviews, reviewsQuery.data]);
+  }, [channel, reviews, reviewsQuery.data, reviewsQuery.isPlaceholderData]);
 
   const failure = [kpisQuery.error, trendQuery.error, productsQuery.error, reviewsQuery.error].find(
     (error): error is Error => error instanceof Error,
@@ -227,6 +225,14 @@ export function ConversionDashboard({ context, now, dimensions }: Props) {
         conversionStates={dimensions.conversionStates}
         activeCount={activeFilterCount(filterState)}
         onReset={() => setFilterState(createDefaultFilterState(now, defaultConversionStateIds))}
+        savedViews={
+          <SavedViews
+            userId={context.user.id}
+            filters={filters}
+            now={now}
+            onOpen={setFilterState}
+          />
+        }
       />
 
       {failure !== undefined && (
